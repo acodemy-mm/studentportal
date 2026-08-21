@@ -1,17 +1,25 @@
 # KBZPay Student Ambassador Portal
 
-Local admin demo for Student Record, Partner School, dashboards, announcements, KPI, Hall of Fame, certificates, and master setup.
+Admin prototype for Student Record, Partner School, dashboards, announcements, KPI, Hall of Fame, certificates, and master setup.
 
-## Open on a computer
+**Stack:** React 18, TypeScript, Vite
 
-1. Download `index.html` from this repository, or clone the repo.
-2. Double-click `index.html`.
-3. It opens in Chrome, Edge, or Safari. No install is required.
+This is a local demo with sample data. Values reset when you refresh the page.
 
-This is a prototype. Data is sample data and resets when you refresh the page.
+## Run locally
 
-## Share a web link
+```bash
+npm install
+npm run dev
+```
 
-In the GitHub repo go to **Settings → Pages**, set **Source** to **Deploy from a branch**, branch **main**, folder **/ (root)**. After it publishes, share:
+Open [http://localhost:5173](http://localhost:5173).
 
-https://acodemy-mm.github.io/studentportal/
+## Production build
+
+```bash
+npm run build
+npm run preview
+```
+
+The built site is in `dist/`. You can host that folder on GitHub Pages or any static host.
