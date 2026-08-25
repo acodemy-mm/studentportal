@@ -292,6 +292,30 @@ function LineIcon({
       </svg>
     );
   }
+  if (name === "chevron") {
+    return (
+      <svg {...common}>
+        <path d="M6 9l6 6 6-6" />
+      </svg>
+    );
+  }
+  if (name === "plus") {
+    return (
+      <svg {...common}>
+        <path d="M12 5v14" />
+        <path d="M5 12h14" />
+      </svg>
+    );
+  }
+  if (name === "upload") {
+    return (
+      <svg {...common}>
+        <path d="M12 21V9" />
+        <path d="M7 13l5-5 5 5" />
+        <path d="M4 21h16" />
+      </svg>
+    );
+  }
   if (name === "download") {
     return (
       <svg {...common}>
@@ -397,7 +421,9 @@ type Student = {
   college: string;
   region: string;
   township: string;
-  address: string;
+  city: string;
+  currentAddress: string;
+  permanentAddress: string;
   batch: string;
   gender: string;
   age: string;
@@ -417,10 +443,28 @@ type Student = {
   updatedBy: string;
 };
 
+type StudentImportInvalidRow = {
+  row: number;
+  studentId: string;
+  reason: string;
+};
+
+type StudentImportResult = {
+  total: number;
+  success: number;
+  skipped: number;
+  fail: number;
+  invalidRows: StudentImportInvalidRow[];
+  accepted: Student[];
+};
+
 type School = {
   id: string;
+  partnerSchoolId: string;
   college: string;
-  region: string;
+  city: string;
+  township: string;
+  collegeType: string;
   totalStudents: string;
   partnerSince: string;
   established: string;
@@ -431,6 +475,7 @@ type School = {
   email: string;
   address: string;
   logo: string;
+  cover: string;
   createdAt: string;
   createdBy: string;
   updatedAt: string;
@@ -439,11 +484,15 @@ type School = {
 
 type EventRec = {
   id: string;
+  eventId: string;
   title: string;
-  region: string;
   status: string;
   venue: string;
-  datetime: string;
+  eventDate: string;
+  eventTime: string;
+  city: string;
+  township: string;
+  hostName: string;
   regStart: string;
   regEnd: string;
   max: string;
@@ -456,11 +505,15 @@ type EventRec = {
 
 type Volunteer = {
   id: string;
+  volunteerId: string;
   title: string;
-  region: string;
   status: string;
   venue: string;
-  datetime: string;
+  eventDate: string;
+  eventTime: string;
+  city: string;
+  township: string;
+  hostName: string;
   regStart: string;
   regEnd: string;
   duration: string;
@@ -473,10 +526,12 @@ type Volunteer = {
 
 type Job = {
   id: string;
+  jobId: string;
   title: string;
   type: string;
   company: string;
-  location: string;
+  city: string;
+  township: string;
   vacancies: string;
   start: string;
   deadline: string;
@@ -571,6 +626,7 @@ type MasterItem = {
 };
 
 type JoinStatus = "Pending" | "Approved" | "Rejected" | "Cancelled";
+type ActivityHistTab = "Volunteer" | "Event" | "Job";
 
 type JoinRecord = {
   id: string;
@@ -581,6 +637,7 @@ type JoinRecord = {
   phone: string;
   email: string;
   batch: string;
+  currentAddress: string;
   appliedAt: string;
   status: JoinStatus;
   remarks: string;
@@ -595,6 +652,8 @@ type JobCandidate = {
   phone: string;
   email: string;
   batch: string;
+  city: string;
+  currentAddress: string;
   appliedAt: string;
 };
 
@@ -613,7 +672,9 @@ const SEED_STUDENTS: Student[] = [
     college: "University of Yangon",
     region: "Yangon",
     township: "Kamayut",
-    address: "No. 12, Inya Road, Kamayut",
+    city: "Yangon",
+    currentAddress: "No. 12, Inya Road, Kamayut",
+    permanentAddress: "45 Baho Road, Sanchaung, Yangon",
     batch: "Batch 6",
     gender: "Female",
     age: "21",
@@ -656,7 +717,9 @@ const SEED_STUDENTS: Student[] = [
     college: "Yangon Technological University",
     region: "Yangon",
     township: "Insein",
-    address: "Hlaing Campus Hostel B",
+    city: "Yangon",
+    currentAddress: "Hlaing Campus Hostel B",
+    permanentAddress: "No. 88, Merchant Street, Pabedan, Yangon",
     batch: "Batch 6",
     gender: "Male",
     age: "22",
@@ -691,7 +754,9 @@ const SEED_STUDENTS: Student[] = [
     college: "University of Mandalay",
     region: "Mandalay",
     township: "Chanayethazan",
-    address: "78th Street, between 28th and 29th",
+    city: "Mandalay",
+    currentAddress: "78th Street, between 28th and 29th",
+    permanentAddress: "Aung Myay Thazan, Mandalay",
     batch: "Batch 5",
     gender: "Female",
     age: "23",
@@ -726,7 +791,9 @@ const SEED_STUDENTS: Student[] = [
     college: "Dagon University",
     region: "Yangon",
     township: "North Dagon",
-    address: "Ward 49, North Dagon",
+    city: "Yangon",
+    currentAddress: "Ward 49, North Dagon",
+    permanentAddress: "No. 21, Myoma Street, North Dagon, Yangon",
     batch: "Batch 6",
     gender: "Male",
     age: "20",
@@ -761,7 +828,9 @@ const SEED_STUDENTS: Student[] = [
     college: "University of Computer Studies, Yangon",
     region: "Yangon",
     township: "Hlaing",
-    address: "UCSY Campus, Hlaing",
+    city: "Yangon",
+    currentAddress: "UCSY Campus, Hlaing",
+    permanentAddress: "No. 7, Insein Road, Hlaing, Yangon",
     batch: "Batch 5",
     gender: "Female",
     age: "22",
@@ -804,7 +873,9 @@ const SEED_STUDENTS: Student[] = [
     college: "University of Medicine 1, Yangon",
     region: "Yangon",
     township: "Lanmadaw",
-    address: "Pyay Road, Lanmadaw",
+    city: "Yangon",
+    currentAddress: "Pyay Road, Lanmadaw",
+    permanentAddress: "No. 15, Strand Road, Lanmadaw, Yangon",
     batch: "Batch 6",
     gender: "Male",
     age: "21",
@@ -837,8 +908,11 @@ const SEED_STUDENTS: Student[] = [
 const SEED_SCHOOLS: School[] = [
   {
     id: "c1",
+    partnerSchoolId: "PS-00001",
     college: "University of Yangon",
-    region: "Yangon",
+    city: "Yangon",
+    township: "Kamayut",
+    collegeType: "Public University",
     totalStudents: "18,500",
     partnerSince: "2022",
     established: "1878",
@@ -848,7 +922,8 @@ const SEED_SCHOOLS: School[] = [
     phone: "01 535 196",
     email: "partnerships@uy.edu.mm",
     address: "University Avenue, Kamayut, Yangon",
-    logo: "UY.png",
+    logo: collegeLogoDataUri("UY", "#002c76"),
+    cover: collegeCoverDataUri("University of Yangon", "#002c76"),
     createdAt: "2022-06-01 09:00",
     createdBy: "Program Admin",
     updatedAt: "2026-03-12 10:00",
@@ -856,8 +931,11 @@ const SEED_SCHOOLS: School[] = [
   },
   {
     id: "c2",
+    partnerSchoolId: "PS-00002",
     college: "Yangon Technological University",
-    region: "Yangon",
+    city: "Yangon",
+    township: "Insein",
+    collegeType: "Public University",
     totalStudents: "8,200",
     partnerSince: "2023",
     established: "1924",
@@ -867,7 +945,8 @@ const SEED_SCHOOLS: School[] = [
     phone: "01 966 3254",
     email: "industry@ytu.edu.mm",
     address: "Insein Road, Gyogone, Yangon",
-    logo: "YTU.png",
+    logo: collegeLogoDataUri("YTU", "#1F8A65"),
+    cover: collegeCoverDataUri("Yangon Technological University", "#1F8A65"),
     createdAt: "2023-02-14 09:00",
     createdBy: "Program Admin",
     updatedAt: "2026-04-08 11:30",
@@ -875,8 +954,11 @@ const SEED_SCHOOLS: School[] = [
   },
   {
     id: "c3",
+    partnerSchoolId: "PS-00003",
     college: "University of Mandalay",
-    region: "Mandalay",
+    city: "Mandalay",
+    township: "Maha Aung Myay",
+    collegeType: "Public University",
     totalStudents: "12,400",
     partnerSince: "2022",
     established: "1925",
@@ -886,7 +968,8 @@ const SEED_SCHOOLS: School[] = [
     phone: "02 406 5321",
     email: "sa@mu.edu.mm",
     address: "University Drive, Maha Aung Myay, Mandalay",
-    logo: "MU.png",
+    logo: collegeLogoDataUri("MU", "#3B82F6"),
+    cover: collegeCoverDataUri("University of Mandalay", "#3B82F6"),
     createdAt: "2022-08-20 09:00",
     createdBy: "Program Admin",
     updatedAt: "2026-02-19 15:10",
@@ -894,8 +977,11 @@ const SEED_SCHOOLS: School[] = [
   },
   {
     id: "c4",
+    partnerSchoolId: "PS-00004",
     college: "University of Computer Studies, Yangon",
-    region: "Yangon",
+    city: "Yangon",
+    township: "Hlaing",
+    collegeType: "Institute",
     totalStudents: "4,500",
     partnerSince: "2024",
     established: "1971",
@@ -905,10 +991,57 @@ const SEED_SCHOOLS: School[] = [
     phone: "01 664 399",
     email: "admin@ucsy.edu.mm",
     address: "No. 4, Main Road, Hlaing, Yangon",
-    logo: "UCSY.png",
+    logo: collegeLogoDataUri("UCSY", "#0D9488"),
+    cover: collegeCoverDataUri("UCSY Campus", "#0D9488"),
     createdAt: "2024-01-09 09:00",
     createdBy: "Program Admin",
     updatedAt: "2026-05-03 13:45",
+    updatedBy: "Program Admin",
+  },
+  {
+    id: "c5",
+    partnerSchoolId: "PS-00005",
+    college: "Dagon University",
+    city: "Yangon",
+    township: "North Dagon",
+    collegeType: "Public University",
+    totalStudents: "22,000",
+    partnerSince: "2023",
+    established: "1993",
+    status: "Active",
+    about: "Large suburban campus supporting Batch 6 ambassador recruitment.",
+    contact: "Daw May Thu",
+    phone: "01 581 244",
+    email: "partner@dagon.edu.mm",
+    address: "East Gyogone, North Dagon, Yangon",
+    logo: collegeLogoDataUri("DU", "#7C3AED"),
+    cover: collegeCoverDataUri("Dagon University", "#7C3AED"),
+    createdAt: "2023-05-18 09:20",
+    createdBy: "Program Admin",
+    updatedAt: "2026-06-01 10:40",
+    updatedBy: "Program Admin",
+  },
+  {
+    id: "c6",
+    partnerSchoolId: "PS-00006",
+    college: "STI Myanmar University",
+    city: "Yangon",
+    township: "Bahan",
+    collegeType: "Private University",
+    totalStudents: "3,200",
+    partnerSince: "2025",
+    established: "1998",
+    status: "Active",
+    about: "Private campus partner for internship and content creator programs.",
+    contact: "U Min Thu",
+    phone: "09 250 880 112",
+    email: "campus@stiemyanmar.edu.mm",
+    address: "Bahan Township, Yangon",
+    logo: collegeLogoDataUri("STI", "#C2410C"),
+    cover: collegeCoverDataUri("STI Myanmar University", "#C2410C"),
+    createdAt: "2025-02-10 11:00",
+    createdBy: "Program Admin",
+    updatedAt: "2026-07-12 14:05",
     updatedBy: "Program Admin",
   },
 ];
@@ -916,11 +1049,15 @@ const SEED_SCHOOLS: School[] = [
 const SEED_EVENTS: EventRec[] = [
   {
     id: "e1",
+    eventId: "EVT-00001",
     title: "SA Orientation Day 2026",
-    region: "Yangon",
     status: "Active",
     venue: "Novotel Yangon Max",
-    datetime: "2026-09-12 09:00",
+    eventDate: "2026-09-12",
+    eventTime: "09:00",
+    city: "Yangon",
+    township: "Mayangone",
+    hostName: "Program Admin",
     regStart: "2026-08-01",
     regEnd: "2026-09-05",
     max: "200",
@@ -932,11 +1069,15 @@ const SEED_EVENTS: EventRec[] = [
   },
   {
     id: "e2",
+    eventId: "EVT-00002",
     title: "Digital Literacy Workshop",
-    region: "Mandalay",
     status: "Active",
     venue: "University of Mandalay Convocation Hall",
-    datetime: "2026-09-26 13:00",
+    eventDate: "2026-09-26",
+    eventTime: "13:00",
+    city: "Mandalay",
+    township: "Chanayethazan",
+    hostName: "Mandalay Campus Lead",
     regStart: "2026-08-20",
     regEnd: "2026-09-20",
     max: "120",
@@ -944,15 +1085,19 @@ const SEED_EVENTS: EventRec[] = [
     details: "Digital_Literacy_MDY.pdf",
     cover: "literacy-cover.jpg",
     meeting: "https://meet.kbzpay.com/literacy-mdy",
-    registered: 88,
+    registered: 120,
   },
   {
     id: "e3",
+    eventId: "EVT-00003",
     title: "Campus Outreach Day",
-    region: "Naypyidaw",
-    status: "Inactive",
+    status: "Active",
     venue: "Naypyidaw State Academy",
-    datetime: "2026-07-18 10:00",
+    eventDate: "2026-07-18",
+    eventTime: "10:00",
+    city: "Naypyidaw",
+    township: "Zabuthiri",
+    hostName: "Central Region Coordinator",
     regStart: "2026-06-01",
     regEnd: "2026-07-10",
     max: "80",
@@ -962,16 +1107,40 @@ const SEED_EVENTS: EventRec[] = [
     meeting: "",
     registered: 76,
   },
+  {
+    id: "e4",
+    eventId: "EVT-00004",
+    title: "Regional SA Meetup",
+    status: "Cancelled",
+    venue: "M Gallery Hotel",
+    eventDate: "2026-10-05",
+    eventTime: "14:00",
+    city: "Yangon",
+    township: "Bahan",
+    hostName: "Regional Lead",
+    regStart: "2026-09-01",
+    regEnd: "2026-09-30",
+    max: "50",
+    summary: "Regional ambassador networking and planning session.",
+    details: "Regional_Meetup.pdf",
+    cover: "meetup-cover.jpg",
+    meeting: "",
+    registered: 12,
+  },
 ];
 
 const SEED_VOLUNTEERS: Volunteer[] = [
   {
     id: "v1",
+    volunteerId: "VLT-00001",
     title: "Community Banking Awareness",
-    region: "Yangon",
     status: "Active",
     venue: "Bahan Township Community Hall",
-    datetime: "2026-10-04 08:30",
+    eventDate: "2026-10-04",
+    eventTime: "08:30",
+    city: "Yangon",
+    township: "Bahan",
+    hostName: "Yangon Volunteer Lead",
     regStart: "2026-09-01",
     regEnd: "2026-09-28",
     duration: "6 hours",
@@ -983,13 +1152,17 @@ const SEED_VOLUNTEERS: Volunteer[] = [
   },
   {
     id: "v2",
+    volunteerId: "VLT-00002",
     title: "Financial Literacy Drive",
-    region: "Mandalay",
     status: "Active",
     venue: "Chanayethazan Youth Center",
-    datetime: "2026-10-18 09:00",
+    eventDate: "2026-10-18",
+    eventTime: "09:00",
+    city: "Mandalay",
+    township: "Chanayethazan",
+    hostName: "Mandalay Volunteer Lead",
     regStart: "2026-09-10",
-    regEnd: "2026-10-12",
+    regEnd: "2026-08-20",
     duration: "4 hours",
     max: "30",
     summary: "Peer coaching for first-year students on budgeting and digital wallets.",
@@ -997,15 +1170,37 @@ const SEED_VOLUNTEERS: Volunteer[] = [
     cover: "vol-literacy.jpg",
     registered: 22,
   },
+  {
+    id: "v3",
+    volunteerId: "VLT-00003",
+    title: "Campus Clean-up Drive",
+    status: "Cancelled",
+    venue: "University of Yangon Main Gate",
+    eventDate: "2026-09-15",
+    eventTime: "07:00",
+    city: "Yangon",
+    township: "Kamayut",
+    hostName: "Campus Operations",
+    regStart: "2026-08-25",
+    regEnd: "2026-09-10",
+    duration: "3 hours",
+    max: "25",
+    summary: "Volunteer clean-up around partner-school campuses.",
+    details: "Volunteer_Cleanup.pdf",
+    cover: "vol-cleanup.jpg",
+    registered: 8,
+  },
 ];
 
 const SEED_JOBS: Job[] = [
   {
     id: "j1",
+    jobId: "JOB-00001",
     title: "Campus Marketing Intern",
     type: "Internship",
     company: "KBZPay",
-    location: "Yangon",
+    city: "Yangon",
+    township: "Kamayut",
     vacancies: "8",
     start: "2026-09-01",
     deadline: "2026-08-25",
@@ -1018,10 +1213,12 @@ const SEED_JOBS: Job[] = [
   },
   {
     id: "j2",
+    jobId: "JOB-00002",
     title: "Student Ambassador Coordinator",
     type: "Full-time",
     company: "KBZPay",
-    location: "Yangon",
+    city: "Yangon",
+    township: "Bahan",
     vacancies: "2",
     start: "2026-08-15",
     deadline: "2026-08-20",
@@ -1034,10 +1231,12 @@ const SEED_JOBS: Job[] = [
   },
   {
     id: "j3",
+    jobId: "JOB-00003",
     title: "Social Media Content Associate",
     type: "Part-time",
     company: "KBZPay",
-    location: "Mandalay",
+    city: "Mandalay",
+    township: "Chanayethazan",
     vacancies: "4",
     start: "2026-09-10",
     deadline: "2026-08-30",
@@ -1066,6 +1265,7 @@ function asJoin(
     phone: student.payPhone,
     email: student.email,
     batch: student.batch,
+    currentAddress: student.currentAddress,
     appliedAt,
     status,
     remarks: "",
@@ -1087,6 +1287,8 @@ function asCandidate(
     phone: student.payPhone,
     email: student.email,
     batch: student.batch,
+    city: student.city,
+    currentAddress: student.currentAddress,
     appliedAt,
   };
 }
@@ -1613,9 +1815,78 @@ const STATUS_OPTS = [
 
 const ACTIVITY_STATUS_OPTS = [
   { value: "Active", label: "Active" },
-  { value: "Inactive", label: "Inactive" },
+  { value: "Closed", label: "Closed" },
+  { value: "Expired", label: "Expired" },
   { value: "Cancelled", label: "Cancelled" },
 ];
+
+const DEMO_NOW = "2026-08-25 13:55";
+const DEMO_TODAY = "2026-08-25";
+
+type ActivityStatusInput = {
+  status: string;
+  eventDate: string;
+  eventTime: string;
+  regEnd: string;
+  max: string;
+  registered: number;
+};
+
+function activityDateTime(row: { eventDate: string; eventTime: string }) {
+  return `${row.eventDate || ""} ${row.eventTime || ""}`.trim();
+}
+
+function displayActivityStatus(row: ActivityStatusInput) {
+  if (row.status === "Cancelled") return "Cancelled";
+  const when = activityDateTime(row);
+  if (when && when <= DEMO_NOW) return "Expired";
+  const cap = parseCount(row.max);
+  if (cap > 0 && row.registered >= cap) return "Closed";
+  if (row.regEnd && row.regEnd < DEMO_TODAY) return "Closed";
+  return "Active";
+}
+
+function canCancelActivity(row: ActivityStatusInput) {
+  if (row.status === "Cancelled") return false;
+  if (displayActivityStatus(row) === "Expired") return false;
+  const when = activityDateTime(row);
+  return !when || when > DEMO_NOW;
+}
+
+function nextEventId(rows: EventRec[]) {
+  const nums = rows.map((r) =>
+    Number((r.eventId || "").replace(/\D/g, "") || "0"),
+  );
+  const n = Math.max(0, ...nums) + 1;
+  return `EVT-${String(n).padStart(5, "0")}`;
+}
+
+function nextVolunteerId(rows: Volunteer[]) {
+  const nums = rows.map((r) =>
+    Number((r.volunteerId || "").replace(/\D/g, "") || "0"),
+  );
+  const n = Math.max(0, ...nums) + 1;
+  return `VLT-${String(n).padStart(5, "0")}`;
+}
+
+function displayJobStatus(job: {
+  vacancies: string;
+  deadline: string;
+  applicants: number;
+}) {
+  const cap = parseCount(job.vacancies);
+  if (job.deadline && job.deadline < DEMO_TODAY) return "Expired";
+  if (cap > 0 && job.applicants >= cap) return "Closed";
+  return "Active";
+}
+
+function nextJobId(rows: Job[]) {
+  const nums = rows.map((r) =>
+    Number((r.jobId || "").replace(/\D/g, "") || "0"),
+  );
+  const n = Math.max(0, ...nums) + 1;
+  return `JOB-${String(n).padStart(5, "0")}`;
+}
 
 const SA_STATUS_OPTS = [
   { value: "Active", label: "Active" },
@@ -1736,6 +2007,13 @@ const EMP_TYPE_OPTS = [
   { value: "Permanent", label: "Permanent Employment" },
 ];
 
+const COLLEGE_TYPE_OPTS = [
+  { value: "Public University", label: "Public University" },
+  { value: "Private University", label: "Private University" },
+  { value: "Institute", label: "Institute" },
+  { value: "College", label: "College" },
+];
+
 const GENDER_OPTS = [
   { value: "Female", label: "Female" },
   { value: "Male", label: "Male" },
@@ -1821,6 +2099,26 @@ function bannerImageDataUri(title: string, accent: string) {
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
 
+function collegeCoverDataUri(title: string, accent: string) {
+  const safe = (title || "Campus")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .slice(0, 36);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="720" height="320" viewBox="0 0 720 320"><defs><linearGradient id="c" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="${accent}"/><stop offset="100%" stop-color="#0B1F4A"/></linearGradient></defs><rect width="720" height="320" fill="url(#c)"/><rect x="40" y="170" width="140" height="110" rx="6" fill="rgba(255,255,255,0.16)"/><rect x="200" y="130" width="120" height="150" rx="6" fill="rgba(255,255,255,0.2)"/><rect x="340" y="150" width="160" height="130" rx="6" fill="rgba(255,255,255,0.14)"/><circle cx="620" cy="70" r="80" fill="rgba(255,255,255,0.1)"/><text x="40" y="70" fill="#ffffff" font-family="Poppins,sans-serif" font-size="26" font-weight="600">${safe}</text><text x="40" y="102" fill="rgba(255,255,255,0.8)" font-family="Poppins,sans-serif" font-size="14">College Cover Image</text></svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+
+function collegeLogoDataUri(code: string, accent: string) {
+  const safe = (code || "PS")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .slice(0, 6);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120"><rect width="120" height="120" rx="16" fill="${accent}"/><text x="60" y="70" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="28" font-weight="700">${safe}</text></svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+
 function isCustomStudentPhoto(avatar?: string) {
   if (!avatar?.trim()) return false;
   // Generated initials avatars are SVG data URIs created by the system.
@@ -1893,6 +2191,18 @@ function nextStudentId(rows: Student[]) {
   return `SA-2026-${String(n).padStart(3, "0")}`;
 }
 
+function nextPartnerSchoolId(rows: School[]) {
+  const nums = rows.map((r) =>
+    Number((r.partnerSchoolId || "").replace(/\D/g, "") || "0"),
+  );
+  const n = Math.max(0, ...nums) + 1;
+  return `PS-${String(n).padStart(5, "0")}`;
+}
+
+function activityStatusTone(status: string): "success" | "neutral" {
+  return status === "Active" ? "success" : "neutral";
+}
+
 function auditPairs(row: Record<string, string>): Array<[string, string]> {
   return [
     ["Created date & time", row.createdAt || "2026-03-12 09:14"],
@@ -1923,7 +2233,280 @@ function downloadCsv(filename: string, content: string) {
 }
 
 const STUDENT_TEMPLATE =
-  "SA ID,Student Name,College Name,Training Region,Township,SA Batch,Gender,Age,Date of Birth,Pay Phone Number,Contact Phone Number,Email,Education,Major,Expected Graduation Date,Address,Status\nSA-2026-000,Sample Ambassador,University of Yangon,Yangon,Kamayut,Batch 6,Female,21,2005-01-01,09 000 000 000,09 000 000 001,sample.sa@uy.edu.mm,Bachelor,International Relations,2027-05-15,No. 1 Sample Street,Active\n";
+  "SA ID,Student Name,College Name,Training Region,Township,City,SA Batch,Gender,Age,Date of Birth,Pay Phone Number,Contact Phone Number,Email,Education,Major,Expected Graduation Date,Current Address,Permanent Address,Status\nSA-2026-000,Sample Ambassador,University of Yangon,Yangon,Kamayut,Yangon,Batch 6,Female,21,2005-01-01,09 000 000 000,09 000 000 001,sample.sa@uy.edu.mm,Bachelor,International Relations,2027-05-15,No. 1 Sample Street,No. 2 Hometown Street,Active\n";
+
+const STUDENT_IMPORT_REQUIRED = [
+  "SA ID",
+  "Student Name",
+  "College Name",
+  "Training Region",
+  "Township",
+  "City",
+  "SA Batch",
+  "Gender",
+  "Age",
+  "Date of Birth",
+  "Pay Phone Number",
+  "Contact Phone Number",
+  "Email",
+  "Education",
+  "Major",
+  "Expected Graduation Date",
+  "Current Address",
+  "Permanent Address",
+  "Status",
+] as const;
+
+const STUDENT_IMPORT_NOTES = [
+  "Only Excel files are supported.",
+  "Student ID must be unique.",
+  "Required columns must not be empty.",
+  "Duplicate records will be skipped.",
+  "Invalid rows will appear in the Import result.",
+];
+
+function parseCsvRows(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    const next = text[i + 1];
+
+    if (ch === '"') {
+      if (inQuotes && next === '"') {
+        cell += '"';
+        i += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (!inQuotes && ch === ",") {
+      row.push(cell.trim());
+      cell = "";
+      continue;
+    }
+
+    if (!inQuotes && (ch === "\n" || ch === "\r")) {
+      if (ch === "\r" && next === "\n") i += 1;
+      row.push(cell.trim());
+      cell = "";
+      if (row.some((value) => value !== "")) rows.push(row);
+      row = [];
+      continue;
+    }
+
+    cell += ch;
+  }
+
+  if (cell.length > 0 || row.length > 0) {
+    row.push(cell.trim());
+    if (row.some((value) => value !== "")) rows.push(row);
+  }
+
+  return rows;
+}
+
+function normalizeImportHeader(value: string) {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function studentImportColumnMap(headers: string[]) {
+  const map: Record<string, number> = {};
+  headers.forEach((header, index) => {
+    const normalized = normalizeImportHeader(header);
+    if (normalized === "sa id" || normalized === "student id") map["SA ID"] = index;
+    else if (normalized === "student name") map["Student Name"] = index;
+    else if (normalized === "college name") map["College Name"] = index;
+    else if (normalized === "training region" || normalized === "region")
+      map["Training Region"] = index;
+    else if (normalized === "township") map["Township"] = index;
+    else if (normalized === "city") map["City"] = index;
+    else if (normalized === "sa batch" || normalized === "batch") map["SA Batch"] = index;
+    else if (normalized === "gender") map["Gender"] = index;
+    else if (normalized === "age") map["Age"] = index;
+    else if (normalized === "date of birth" || normalized === "dob")
+      map["Date of Birth"] = index;
+    else if (normalized === "pay phone number" || normalized === "pay phone")
+      map["Pay Phone Number"] = index;
+    else if (normalized === "contact phone number" || normalized === "contact phone")
+      map["Contact Phone Number"] = index;
+    else if (normalized === "email") map["Email"] = index;
+    else if (normalized === "education") map["Education"] = index;
+    else if (normalized === "major") map["Major"] = index;
+    else if (
+      normalized === "expected graduation date" ||
+      normalized === "graduation"
+    )
+      map["Expected Graduation Date"] = index;
+    else if (normalized === "current address") map["Current Address"] = index;
+    else if (normalized === "permanent address") map["Permanent Address"] = index;
+    else if (normalized === "address") map["Current Address"] = index;
+    else if (normalized === "status") map["Status"] = index;
+  });
+  return map;
+}
+
+function importCellValue(
+  cells: string[],
+  columnMap: Record<string, number>,
+  column: string,
+) {
+  const index = columnMap[column];
+  return index === undefined ? "" : (cells[index] || "").trim();
+}
+
+function importStudentRows(
+  text: string,
+  existingStudents: Student[],
+): StudentImportResult {
+  const rows = parseCsvRows(text);
+  if (rows.length < 2) {
+    return {
+      total: 0,
+      success: 0,
+      skipped: 0,
+      fail: 1,
+      invalidRows: [
+        {
+          row: 1,
+          studentId: "—",
+          reason: "File is empty or has no data rows.",
+        },
+      ],
+      accepted: [],
+    };
+  }
+
+  const columnMap = studentImportColumnMap(rows[0]);
+  const missingColumns = STUDENT_IMPORT_REQUIRED.filter(
+    (column) => columnMap[column] === undefined,
+  );
+  if (missingColumns.length > 0) {
+    return {
+      total: 0,
+      success: 0,
+      skipped: 0,
+      fail: 1,
+      invalidRows: [
+        {
+          row: 1,
+          studentId: "—",
+          reason: `Missing required columns: ${missingColumns.join(", ")}.`,
+        },
+      ],
+      accepted: [],
+    };
+  }
+
+  const existingIds = new Set(
+    existingStudents.map((student) => student.studentId.trim().toLowerCase()),
+  );
+  const seenIds = new Set<string>();
+  const accepted: Student[] = [];
+  const invalidRows: StudentImportInvalidRow[] = [];
+  let skipped = 0;
+  let fail = 0;
+
+  for (let i = 1; i < rows.length; i += 1) {
+    const cells = rows[i];
+    const rowNumber = i + 1;
+    const studentId = importCellValue(cells, columnMap, "SA ID");
+    const name = importCellValue(cells, columnMap, "Student Name");
+    const college = importCellValue(cells, columnMap, "College Name");
+    const region = importCellValue(cells, columnMap, "Training Region");
+    const township = importCellValue(cells, columnMap, "Township");
+    const city = importCellValue(cells, columnMap, "City");
+    const batch = importCellValue(cells, columnMap, "SA Batch");
+    const gender = importCellValue(cells, columnMap, "Gender");
+    const age = importCellValue(cells, columnMap, "Age");
+    const dob = importCellValue(cells, columnMap, "Date of Birth");
+    const payPhone = importCellValue(cells, columnMap, "Pay Phone Number");
+    const contactPhone = importCellValue(
+      cells,
+      columnMap,
+      "Contact Phone Number",
+    );
+    const email = importCellValue(cells, columnMap, "Email");
+    const education = importCellValue(cells, columnMap, "Education");
+    const major = importCellValue(cells, columnMap, "Major");
+    const graduation = importCellValue(
+      cells,
+      columnMap,
+      "Expected Graduation Date",
+    );
+    const currentAddress = importCellValue(cells, columnMap, "Current Address");
+    const permanentAddress = importCellValue(
+      cells,
+      columnMap,
+      "Permanent Address",
+    );
+    const status = importCellValue(cells, columnMap, "Status");
+
+    const emptyRequired = STUDENT_IMPORT_REQUIRED.filter(
+      (column) => importCellValue(cells, columnMap, column) === "",
+    );
+    if (emptyRequired.length > 0) {
+      fail += 1;
+      invalidRows.push({
+        row: rowNumber,
+        studentId: studentId || "—",
+        reason: `Required columns empty: ${emptyRequired.join(", ")}.`,
+      });
+      continue;
+    }
+
+    const normalizedId = studentId.toLowerCase();
+    if (existingIds.has(normalizedId) || seenIds.has(normalizedId)) {
+      skipped += 1;
+      continue;
+    }
+
+    seenIds.add(normalizedId);
+    accepted.push({
+      id: uid("s"),
+      studentId,
+      name,
+      college,
+      region,
+      township,
+      city,
+      currentAddress,
+      permanentAddress,
+      batch,
+      gender,
+      age,
+      dob,
+      payPhone,
+      contactPhone,
+      email,
+      education,
+      major,
+      graduation,
+      status,
+      avatar: avatarDataUri(name, BRAND),
+      employment: [],
+      ...stampAudit({}, false),
+    });
+  }
+
+  return {
+    total: rows.length - 1,
+    success: accepted.length,
+    skipped,
+    fail,
+    invalidRows,
+    accepted,
+  };
+}
+
+function formatStudentImportResult(result: StudentImportResult) {
+  return `Total records: ${result.total}. Success: ${result.success}. Skipped: ${result.skipped}. Failed: ${result.fail}.`;
+}
 
 const KPI_TEMPLATE =
   "Student ID,Student Name,Contact Number,College Name,Attendance,Operation Performance,Onboarding,Social Media,Assignment,Total KPI (%)\nSA-2026-001,Aye Chan Moe,09 250 441 102,University of Yangon,96,88,92,85,90,90\n";
@@ -1938,12 +2521,15 @@ function TemplateButton({
   return (
     <div
       className="sa-template"
+      role="button"
       onClick={() => downloadCsv(filename, csv)}
       style={{
-        display: "flex",
+        display: "inline-flex",
         alignItems: "center",
-        gap: 8,
-        padding: "6px 12px",
+        justifyContent: "center",
+        gap: 6,
+        height: 34,
+        padding: "0 14px",
         borderRadius: 6,
         background: WHITE,
         border: `1px solid ${LINE}`,
@@ -1961,11 +2547,42 @@ function TemplateButton({
 }
 
 function StatusMark({ value }: { value: string; key?: string }) {
-  const on = value === "Active";
   const blocked = value === "Blacklist";
+  const cancelled = value === "Cancelled";
+  const closed = value === "Closed";
+  const expired = value === "Expired";
+  const on = value === "Active";
+  const bg = blocked
+    ? "#FDECEC"
+    : cancelled
+      ? "#FDECEC"
+      : closed
+        ? "#FFF4E5"
+        : expired
+          ? "#F3F4F6"
+          : on
+            ? SOFT
+            : "#F3F4F6";
+  const color = blocked
+    ? "#C62828"
+    : cancelled
+      ? "#C62828"
+      : closed
+        ? "#E65100"
+        : expired
+          ? MUTED
+          : on
+            ? BRAND
+            : MUTED;
   return (
     <div
-      className={blocked ? "sa-status-block" : on ? "sa-status-on" : "sa-status-off"}
+      className={
+        blocked || cancelled
+          ? "sa-status-block"
+          : on
+            ? "sa-status-on"
+            : "sa-status-off"
+      }
       style={{
         display: "inline-block",
         padding: "3px 10px",
@@ -1973,8 +2590,8 @@ function StatusMark({ value }: { value: string; key?: string }) {
         fontFamily: FONT,
         fontSize: 11,
         fontWeight: 600,
-        background: blocked ? "#FDECEC" : on ? SOFT : "#F3F4F6",
-        color: blocked ? "#C62828" : on ? BRAND : MUTED,
+        background: bg,
+        color,
       }}
     >
       {value}
@@ -2005,12 +2622,14 @@ function FilePick({
   value,
   onChange,
   onImageChange,
+  onFileChange,
 }: {
   label: string;
   accept: string;
   value: string;
-  onChange: (name: string) => void;
+  onChange?: (name: string) => void;
   onImageChange?: (dataUrl: string, fileName: string) => void;
+  onFileChange?: (file: File) => void;
 }) {
   return (
     <Field label={label}>
@@ -2030,6 +2649,10 @@ function FilePick({
           const list = e.target?.files;
           const file = list && list[0] ? list[0] : null;
           if (!file) return;
+          if (onFileChange) {
+            onFileChange(file as File);
+            return;
+          }
           if (onImageChange && accept.includes("image")) {
             const reader = new FileReader();
             reader.onload = () => {
@@ -2040,7 +2663,7 @@ function FilePick({
             reader.readAsDataURL(file);
             return;
           }
-          onChange(file.name);
+          onChange?.(file.name);
         }}
       />
       {value ? (
@@ -2105,6 +2728,8 @@ function BrandButton({
   onClick?: () => void;
   disabled?: boolean;
 }) {
+  const label = children || "";
+  const withPlus = /^(Add|Import)\b/i.test(label);
   return (
     <div
       className="sa-primary-btn"
@@ -2113,7 +2738,9 @@ function BrandButton({
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
-        padding: "6px 14px",
+        gap: withPlus ? 8 : 0,
+        height: 34,
+        padding: "0 14px",
         borderRadius: 6,
         background: "#002c76",
         color: WHITE,
@@ -2124,6 +2751,7 @@ function BrandButton({
         opacity: disabled ? 0.5 : 1,
       }}
     >
+      {withPlus ? <LineIcon name="plus" color={WHITE} size={15} /> : null}
       {children}
     </div>
   );
@@ -2302,12 +2930,141 @@ function CertFileTable({ files }: { files: CertFile[] }) {
   );
 }
 
+function HeaderExportButton({ onClick }: { onClick: () => void }) {
+  return (
+    <div
+      className="sa-header-export"
+      role="button"
+      onClick={onClick}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 6,
+        height: 34,
+        padding: "0 14px",
+        borderRadius: 6,
+        background: WHITE,
+        border: `1px solid ${LINE}`,
+        color: BRAND,
+        fontFamily: FONT,
+        fontSize: 13,
+        fontWeight: 600,
+        cursor: "pointer",
+      }}
+    >
+      <LineIcon name="download" color={BRAND} size={15} />
+      Export
+    </div>
+  );
+}
+
+function AddSplitButton({
+  open,
+  onToggle,
+  onSingle,
+  onUpload,
+}: {
+  open: boolean;
+  onToggle: () => void;
+  onSingle: () => void;
+  onUpload: () => void;
+}) {
+  return (
+    <div style={{ position: "relative" }}>
+      <div
+        className="sa-primary-btn"
+        role="button"
+        onClick={onToggle}
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 8,
+          height: 34,
+          padding: "0 14px",
+          borderRadius: 6,
+          background: "#002c76",
+          color: WHITE,
+          fontFamily: FONT,
+          fontSize: 13,
+          fontWeight: 600,
+          cursor: "pointer",
+        }}
+      >
+        <LineIcon name="plus" color={WHITE} size={15} />
+        Add
+        <LineIcon name="chevron" color={WHITE} size={14} />
+      </div>
+      {open ? (
+        <div
+          className="sa-drop"
+          style={{
+            position: "absolute",
+            right: 0,
+            top: "calc(100% + 6px)",
+            zIndex: 30,
+            minWidth: 188,
+            padding: 6,
+            borderRadius: 8,
+            background: WHITE,
+            border: `1px solid ${LINE}`,
+            boxShadow: "0 8px 24px rgba(27, 36, 48, 0.12)",
+          }}
+        >
+          <div
+            className="sa-drop-item"
+            role="button"
+            onClick={onSingle}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "8px 10px",
+              borderRadius: 6,
+              fontFamily: FONT,
+              fontSize: 13,
+              fontWeight: 600,
+              color: INK,
+              cursor: "pointer",
+            }}
+          >
+            <LineIcon name="plus" color={BRAND} size={15} />
+            Single add
+          </div>
+          <div
+            className="sa-drop-item"
+            role="button"
+            onClick={onUpload}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "8px 10px",
+              borderRadius: 6,
+              fontFamily: FONT,
+              fontSize: 13,
+              fontWeight: 600,
+              color: INK,
+              cursor: "pointer",
+            }}
+          >
+            <LineIcon name="upload" color={BRAND} size={15} />
+            Upload file
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function PageIntro({
   title,
-  body,
+  actions,
 }: {
   title: string;
-  body: string;
+  body?: string;
+  actions?: Parameters<typeof Stack>[0]["children"];
 }) {
   const section =
     MASTER_TITLES.indexOf(title) >= 0
@@ -2319,12 +3076,21 @@ function PageIntro({
           : "Program";
   return (
     <Stack gap={6}>
-      <H1 style={mergeStyle({ color: INK, fontFamily: FONT })}>{title}</H1>
+      <Row align="center" gap={12} justify="space-between">
+        <H1
+          style={mergeStyle({
+            color: INK,
+            fontFamily: FONT,
+            margin: 0,
+            lineHeight: "34px",
+          })}
+        >
+          {title}
+        </H1>
+        {actions}
+      </Row>
       <Text size="small" tone="secondary" style={{ color: MUTED, fontFamily: FONT }}>
         KBZPay SA &gt; {section} &gt; {title}
-      </Text>
-      <Text tone="secondary" style={{ color: MUTED }}>
-        {body}
       </Text>
     </Stack>
   );
@@ -2470,17 +3236,17 @@ function DashboardView({
   );
   const enrollCats = schools.map((s) => s.college);
   const enrollData = schools.map((s) => parseCount(s.totalStudents));
-  const schoolRegion = tally(schools.map((s) => s.region));
+  const schoolCity = tally(schools.map((s) => s.city));
   const sinceTally = tally(schools.map((s) => s.partnerSince));
   const campusHeadcount = schools.reduce((sum, s) => sum + parseCount(s.totalStudents), 0);
   const actRegions = unique([
-    ...events.map((e) => e.region),
-    ...volunteers.map((v) => v.region),
-    ...jobs.map((j) => j.location),
+    ...events.map((e) => e.city),
+    ...volunteers.map((v) => v.city),
+    ...jobs.map((j) => j.city),
   ]);
-  const eventByRegion = actRegions.map((r) => events.filter((e) => e.region === r).length);
-  const volByRegion = actRegions.map((r) => volunteers.filter((v) => v.region === r).length);
-  const jobByRegion = actRegions.map((r) => jobs.filter((j) => j.location === r).length);
+  const eventByRegion = actRegions.map((r) => events.filter((e) => e.city === r).length);
+  const volByRegion = actRegions.map((r) => volunteers.filter((v) => v.city === r).length);
+  const jobByRegion = actRegions.map((r) => jobs.filter((j) => j.city === r).length);
   const applyMonths = unique(
     [...joins.map((j) => j.appliedAt.slice(0, 7)), ...candidates.map((c) => c.appliedAt.slice(0, 7))],
   ).sort();
@@ -2510,15 +3276,15 @@ function DashboardView({
     ...events.map((e) => ({
       kind: "Event",
       title: e.title,
-      when: e.datetime,
-      place: `${e.region} · ${e.venue}`,
+      when: activityDateTime(e),
+      place: `${e.city} · ${e.venue}`,
       count: String(e.registered),
     })),
     ...volunteers.map((v) => ({
       kind: "Volunteer",
       title: v.title,
-      when: v.datetime,
-      place: `${v.region} · ${v.venue}`,
+      when: activityDateTime(v),
+      place: `${v.city} · ${v.venue}`,
       count: String(v.registered),
     })),
   ]
@@ -2670,12 +3436,12 @@ function DashboardView({
       <Stack gap={16}>
         <PageIntro
           title="Partner School Dashboard"
-          body="Partner campus enrollment, regional coverage, and year each school joined the program."
+          body="Partner campus enrollment, city coverage, and year each school joined the program."
         />
         <Grid columns={3} gap={12}>
           <DashStat label="Partner schools" value={String(schools.length)} />
           <DashStat label="Campus headcount" value={campusHeadcount.toLocaleString()} />
-          <DashStat label="Regions covered" value={String(schoolRegion.labels.length)} />
+          <DashStat label="Cities covered" value={String(schoolCity.labels.length)} />
         </Grid>
         <ChartPanel
           title="Campus enrollment at partner schools"
@@ -2691,15 +3457,15 @@ function DashboardView({
         </ChartPanel>
         <Grid columns={2} gap={12}>
           <ChartPanel
-            title="Partner schools by region"
-            axes="Region (slices) · Share of partner schools (%)"
+            title="Partner schools by city"
+            axes="City (slices) · Share of partner schools (%)"
             caption={caption}
           >
             <PieChart
               donut
-              data={schoolRegion.labels.map((label, i) => ({
+              data={schoolCity.labels.map((label, i) => ({
                 label,
-                value: schoolRegion.data[i],
+                value: schoolCity.data[i],
               }))}
             />
           </ChartPanel>
@@ -2738,7 +3504,7 @@ function DashboardView({
         <ChartPanel
           title="Activity listings by region"
           axes="Region (x) · Listing count (y)"
-          caption={`${caption}. Jobs use posting location as region.`}
+          caption={`${caption}. Jobs use posting city as region.`}
         >
           <BarChart
             categories={actRegions}
@@ -3294,6 +4060,45 @@ function JoinTabs({
   );
 }
 
+function HistoryTabs({
+  value,
+  counts,
+  onChange,
+}: {
+  value: ActivityHistTab;
+  counts: Record<ActivityHistTab, number>;
+  onChange: (tab: ActivityHistTab) => void;
+}) {
+  const tabs: ActivityHistTab[] = ["Volunteer", "Event", "Job"];
+  return (
+    <Row gap={8} align="center">
+      {tabs.map((tab) => {
+        const on = value === tab;
+        return (
+          <div
+            key={tab}
+            className={on ? "sa-tab-on" : "sa-tab-off"}
+            onClick={() => onChange(tab)}
+            style={{
+              padding: "7px 14px",
+              borderRadius: 6,
+              fontFamily: FONT,
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: "pointer",
+              background: on ? BRAND : WHITE,
+              color: on ? WHITE : MUTED,
+              border: on ? "1px solid #002c76" : `1px solid ${LINE}`,
+            }}
+          >
+            {tab} ({counts[tab]})
+          </div>
+        );
+      })}
+    </Row>
+  );
+}
+
 function ReadGrid({ pairs }: { pairs: Array<[string, string]> }) {
   return (
     <Grid columns={2} gap={12}>
@@ -3432,15 +4237,22 @@ export default function StudentManagementPortal() {
   const [regionFilter, setRegionFilter] = useCanvasState("regionFilter", "All");
   const [batchFilter, setBatchFilter] = useCanvasState("batchFilter", "All");
   const [collegeFilter, setCollegeFilter] = useCanvasState("collegeFilter", "All");
+  const [cityFilter, setCityFilter] = useCanvasState("cityFilter", "All");
   const [statusFilter, setStatusFilter] = useCanvasState("statusFilter", "All");
   const [dateFrom, setDateFrom] = useCanvasState("dateFrom", "");
   const [dateTo, setDateTo] = useCanvasState("dateTo", "");
   const [advOpen, setAdvOpen] = useCanvasState("advOpen", false);
   const [kpiImported, setKpiImported] = useCanvasState("kpiImported", "");
+  const [studentImportResult, setStudentImportResult] =
+    useCanvasState<StudentImportResult | null>("studentImportResult", null);
   const [navOpen, setNavOpen] = useCanvasState("navOpen", true);
   const [detailId, setDetailId] = useCanvasState("detailId", "");
   const [menuId, setMenuId] = useCanvasState("menuId", "");
   const [partTab, setPartTab] = useCanvasState<JoinStatus>("partTab", "Pending");
+  const [activityHistTab, setActivityHistTab] = useCanvasState<ActivityHistTab>(
+    "activityHistTab",
+    "Volunteer",
+  );
   const [certZipFiles, setCertZipFiles] = useCanvasState<CertFile[]>(
     "certZipFiles",
     [],
@@ -3462,6 +4274,15 @@ export default function StudentManagementPortal() {
   const [joinSendSms, setJoinSendSms] = useCanvasState("joinSendSms", false);
   const [joinRemarks, setJoinRemarks] = useCanvasState("joinRemarks", "");
   const [partViewId, setPartViewId] = useCanvasState("partViewId", "");
+  const [partSearch, setPartSearch] = useCanvasState("partSearch", "");
+  const [partBatchFilter, setPartBatchFilter] = useCanvasState("partBatchFilter", "All");
+  const [partCollegeFilter, setPartCollegeFilter] = useCanvasState(
+    "partCollegeFilter",
+    "All",
+  );
+  const [partDateFrom, setPartDateFrom] = useCanvasState("partDateFrom", "");
+  const [partDateTo, setPartDateTo] = useCanvasState("partDateTo", "");
+  const [partAdvOpen, setPartAdvOpen] = useCanvasState("partAdvOpen", false);
   const [activityCancelOpen, setActivityCancelOpen] = useCanvasState(
     "activityCancelOpen",
     false,
@@ -3475,17 +4296,17 @@ export default function StudentManagementPortal() {
     false,
   );
 
-  const [students, setStudents] = useCanvasState<Student[]>("saStudents4", SEED_STUDENTS);
-  const [schools, setSchools] = useCanvasState<School[]>("saSchools", SEED_SCHOOLS);
-  const [events, setEvents] = useCanvasState<EventRec[]>("events", SEED_EVENTS);
+  const [students, setStudents] = useCanvasState<Student[]>("saStudents5", SEED_STUDENTS);
+  const [schools, setSchools] = useCanvasState<School[]>("saSchools3", SEED_SCHOOLS);
+  const [events, setEvents] = useCanvasState<EventRec[]>("events3", SEED_EVENTS);
   const [volunteers, setVolunteers] = useCanvasState<Volunteer[]>(
-    "volunteers",
+    "volunteers3",
     SEED_VOLUNTEERS,
   );
-  const [jobs, setJobs] = useCanvasState<Job[]>("jobs", SEED_JOBS);
-  const [joins, setJoins] = useCanvasState<JoinRecord[]>("joins2", SEED_JOINS);
+  const [jobs, setJobs] = useCanvasState<Job[]>("jobs2", SEED_JOBS);
+  const [joins, setJoins] = useCanvasState<JoinRecord[]>("joins3", SEED_JOINS);
   const [candidates] = useCanvasState<JobCandidate[]>(
-    "candidates",
+    "candidates2",
     SEED_CANDIDATES,
   );
   const [kpis, setKpis] = useCanvasState<KpiRow[]>("kpis", SEED_KPI);
@@ -3515,9 +4336,51 @@ export default function StudentManagementPortal() {
     { value: "All", label: "All colleges" },
     ...collegeSelect,
   ];
+  const cityOpts = [
+    { value: "All", label: "All cities" },
+    ...unique(students.map((s) => s.city).filter(Boolean)).sort().map((city) => ({
+      value: city,
+      label: city,
+    })),
+  ];
+  const schoolCityOpts = [
+    { value: "All", label: "All cities" },
+    ...unique(schools.map((s) => s.city).filter(Boolean)).sort().map((city) => ({
+      value: city,
+      label: city,
+    })),
+  ];
   const schoolStatusOpts = [
     { value: "All", label: "All statuses" },
     ...STATUS_OPTS,
+  ];
+  const activityStatusFilterOpts = [
+    { value: "All", label: "All statuses" },
+    ...ACTIVITY_STATUS_OPTS,
+  ];
+  const jobStatusFilterOpts = [
+    { value: "All", label: "All statuses" },
+    { value: "Active", label: "Active" },
+    { value: "Closed", label: "Closed" },
+    { value: "Expired", label: "Expired" },
+  ];
+  const eventCityOpts = [
+    { value: "All", label: "All cities" },
+    ...unique(events.map((e) => e.city).filter(Boolean))
+      .sort()
+      .map((city) => ({ value: city, label: city })),
+  ];
+  const volunteerCityOpts = [
+    { value: "All", label: "All cities" },
+    ...unique(volunteers.map((v) => v.city).filter(Boolean))
+      .sort()
+      .map((city) => ({ value: city, label: city })),
+  ];
+  const jobCityOpts = [
+    { value: "All", label: "All cities" },
+    ...unique(jobs.map((j) => j.city).filter(Boolean))
+      .sort()
+      .map((city) => ({ value: city, label: city })),
   ];
   const awardSelect = FAME_CATEGORY_OPTS;
   const certCatSelect = certCats.map((c) => ({ value: c.name, label: c.name }));
@@ -3535,6 +4398,39 @@ export default function StudentManagementPortal() {
     setEmpDraft([]);
   }
 
+  function openAddStudent() {
+    setMenuId("");
+    openAdd({
+      studentId: nextStudentId(students),
+      name: "",
+      college: schools[0]?.college || "",
+      region: regions[0]?.name || "Yangon",
+      township: "",
+      city: "",
+      currentAddress: "",
+      permanentAddress: "",
+      batch: batches.find((b) => b.status === "Active")?.name || "Batch 6",
+      gender: "Female",
+      age: "",
+      dob: "",
+      payPhone: "",
+      contactPhone: "",
+      email: "",
+      education: "Bachelor",
+      major: "",
+      graduation: "",
+      status: "Active",
+      avatar: "",
+      employment: [],
+    });
+  }
+
+  function openUploadStudents() {
+    setMenuId("");
+    setForm({ file: "", importText: "" });
+    setModal("import");
+  }
+
   function openEdit(id: string, defaults: Record<string, string>) {
     setForm(defaults);
     setEditId(id);
@@ -3549,12 +4445,20 @@ export default function StudentManagementPortal() {
     setDetailId(id);
     setMenuId("");
     setPartTab("Pending");
+    setActivityHistTab("Volunteer");
+    setPartSearch("");
+    setPartBatchFilter("All");
+    setPartCollegeFilter("All");
+    setPartDateFrom("");
+    setPartDateTo("");
+    setPartAdvOpen(false);
   }
 
   function closeDetails() {
     setDetailId("");
     setMenuId("");
     setPartTab("Pending");
+    setActivityHistTab("Volunteer");
     setEmpFormOpen("closed");
     setEmpFormId("");
     setEmpForm({});
@@ -3563,6 +4467,12 @@ export default function StudentManagementPortal() {
     setJoinSendSms(false);
     setJoinRemarks("");
     setPartViewId("");
+    setPartSearch("");
+    setPartBatchFilter("All");
+    setPartCollegeFilter("All");
+    setPartDateFrom("");
+    setPartDateTo("");
+    setPartAdvOpen(false);
     setActivityCancelOpen(false);
     setActivityCancelMsg("");
     setActivityCancelSms(false);
@@ -3693,15 +4603,18 @@ export default function StudentManagementPortal() {
     setRegionFilter("All");
     setBatchFilter("All");
     setCollegeFilter("All");
+    setCityFilter("All");
     setStatusFilter("All");
     setDateFrom("");
     setDateTo("");
     setAdvOpen(false);
     setModal("closed");
     setKpiImported("");
+    setStudentImportResult(null);
     setDetailId("");
     setMenuId("");
     setPartTab("Pending");
+    setActivityHistTab("Volunteer");
     setEmpFormOpen("closed");
     setEmpFormId("");
     setEmpForm({});
@@ -3725,44 +4638,50 @@ export default function StudentManagementPortal() {
   const partViewRow = partViewId
     ? joins.find((j) => j.id === partViewId)
     : undefined;
-  const studentActivityJoins = joins.filter(
-    (j) => j.studentId === form.studentId && j.status === "Approved",
-  );
-  const studentEventsJoined: Array<{ join: JoinRecord; rec: EventRec }> = [];
-  const studentVolsJoined: Array<{ join: JoinRecord; rec: Volunteer }> = [];
-  studentActivityJoins.forEach((j) => {
-    const event = events.find((e) => e.id === j.parentId);
-    if (event) studentEventsJoined.push({ join: j, rec: event });
-    const vol = volunteers.find((v) => v.id === j.parentId);
-    if (vol) studentVolsJoined.push({ join: j, rec: vol });
-  });
+  const studentEventHistory = joins
+    .filter(
+      (j) =>
+        j.studentId === form.studentId &&
+        events.some((e) => e.id === j.parentId),
+    )
+    .map((j) => ({
+      title: events.find((e) => e.id === j.parentId)?.title || "—",
+      appliedAt: j.appliedAt,
+    }))
+    .sort((a, b) => a.appliedAt.localeCompare(b.appliedAt));
+  const studentVolHistory = joins
+    .filter(
+      (j) =>
+        j.studentId === form.studentId &&
+        volunteers.some((v) => v.id === j.parentId),
+    )
+    .map((j) => ({
+      title: volunteers.find((v) => v.id === j.parentId)?.title || "—",
+      appliedAt: j.appliedAt,
+    }))
+    .sort((a, b) => a.appliedAt.localeCompare(b.appliedAt));
+  const studentJobHistory = candidates
+    .filter((c) => c.studentId === form.studentId)
+    .map((c) => ({
+      title: jobs.find((j) => j.id === c.jobId)?.title || "—",
+      appliedAt: c.appliedAt,
+    }))
+    .sort((a, b) => a.appliedAt.localeCompare(b.appliedAt));
+  const activityHistCounts: Record<ActivityHistTab, number> = {
+    Volunteer: studentVolHistory.length,
+    Event: studentEventHistory.length,
+    Job: studentJobHistory.length,
+  };
+  const activityHistRows =
+    activityHistTab === "Volunteer"
+      ? studentVolHistory
+      : activityHistTab === "Event"
+        ? studentEventHistory
+        : studentJobHistory;
   const detailStudent =
     page === "students" && detailId
       ? students.find((s) => s.id === detailId)
       : undefined;
-  const studentActivitiesJoined = [
-    ...studentEventsJoined.map((row) => ({
-      category: "Event",
-      title: row.rec.title,
-      region: row.rec.region,
-      datetime: row.rec.datetime,
-      appliedAt: row.join.appliedAt,
-      status: row.join.status,
-    })),
-    ...studentVolsJoined.map((row) => ({
-      category: "Volunteer",
-      title: row.rec.title,
-      region: row.rec.region,
-      datetime: row.rec.datetime,
-      appliedAt: row.join.appliedAt,
-      status: row.join.status,
-    })),
-  ].sort((a, b) => {
-    if (a.category !== b.category) {
-      return a.category === "Event" ? -1 : 1;
-    }
-    return a.datetime.localeCompare(b.datetime);
-  });
   const joinCounts: Record<JoinStatus, number> = {
     Pending: detailJoins.filter((j) => j.status === "Pending").length,
     Approved: detailJoins.filter((j) => j.status === "Approved").length,
@@ -3770,7 +4689,58 @@ export default function StudentManagementPortal() {
     Cancelled: detailJoins.filter((j) => j.status === "Cancelled").length,
   };
   const tabJoins = detailJoins.filter((j) => j.status === partTab);
-  const detailCandidates = candidates.filter((c) => c.jobId === detailId);
+  const partQ = partSearch.trim().toLowerCase();
+  const partBatchOpts = [
+    { value: "All", label: "All batches" },
+    ...unique(detailJoins.map((j) => j.batch).filter(Boolean))
+      .sort()
+      .map((batch) => ({ value: batch, label: batch })),
+  ];
+  const partCollegeOpts = [
+    { value: "All", label: "All colleges" },
+    ...unique(detailJoins.map((j) => j.college).filter(Boolean))
+      .sort()
+      .map((college) => ({ value: college, label: college })),
+  ];
+  const partAdvCount =
+    Number(partBatchFilter !== "All") +
+    Number(partCollegeFilter !== "All") +
+    Number(!!partDateFrom) +
+    Number(!!partDateTo);
+  const filteredTabJoins = tabJoins.filter((j) => {
+    if (partBatchFilter !== "All" && j.batch !== partBatchFilter) return false;
+    if (partCollegeFilter !== "All" && j.college !== partCollegeFilter) return false;
+    if (!inDateRange(j.appliedAt, partDateFrom, partDateTo)) return false;
+    if (!partQ) return true;
+    return (
+      matches(j.studentId, partQ) ||
+      matches(j.name, partQ) ||
+      matches(j.college, partQ) ||
+      matches(j.batch, partQ) ||
+      matches(j.currentAddress, partQ)
+    );
+  });
+  const detailActivityStatus =
+    page === "events" || page === "volunteers"
+      ? displayActivityStatus({
+          status: form.status || "",
+          eventDate: form.eventDate || "",
+          eventTime: form.eventTime || "",
+          regEnd: form.regEnd || "",
+          max: form.max || "0",
+          registered: parseCount(form.registered || "0"),
+        })
+      : "";
+  const showActivityCancel =
+    (page === "events" || page === "volunteers") &&
+    canCancelActivity({
+      status: form.status || "",
+      eventDate: form.eventDate || "",
+      eventTime: form.eventTime || "",
+      regEnd: form.regEnd || "",
+      max: form.max || "0",
+      registered: parseCount(form.registered || "0"),
+    });
   const detailCert = certs.find((c) => c.id === detailId);
 
   function moveJoin(
@@ -3883,36 +4853,103 @@ export default function StudentManagementPortal() {
     if (regionFilter !== "All" && s.region !== regionFilter) return false;
     if (batchFilter !== "All" && s.batch !== batchFilter) return false;
     if (collegeFilter !== "All" && s.college !== collegeFilter) return false;
+    if (cityFilter !== "All" && s.city !== cityFilter) return false;
     if (!inDateRange(s.createdAt, dateFrom, dateTo)) return false;
     if (!q) return true;
     return matches(s.studentId, q) || matches(s.name, q);
   });
 
   const filteredSchools = schools.filter((s) => {
-    if (regionFilter !== "All" && s.region !== regionFilter) return false;
+    if (cityFilter !== "All" && s.city !== cityFilter) return false;
     if (statusFilter !== "All" && s.status !== statusFilter) return false;
     if (!inDateRange(s.createdAt, dateFrom, dateTo)) return false;
     if (!q) return true;
-    return matches(s.college, q);
+    return (
+      matches(s.college, q) ||
+      matches(s.partnerSchoolId, q) ||
+      matches(s.city, q) ||
+      matches(s.township, q)
+    );
   });
 
   const studentAdvCount =
     (batchFilter !== "All" ? 1 : 0) +
     (collegeFilter !== "All" ? 1 : 0) +
     (regionFilter !== "All" ? 1 : 0) +
+    (cityFilter !== "All" ? 1 : 0) +
     (dateFrom ? 1 : 0) +
     (dateTo ? 1 : 0);
 
   const schoolAdvCount =
-    (regionFilter !== "All" ? 1 : 0) +
+    (cityFilter !== "All" ? 1 : 0) +
     (statusFilter !== "All" ? 1 : 0) +
     (dateFrom ? 1 : 0) +
     (dateTo ? 1 : 0);
+
+  const activityAdvCount =
+    (cityFilter !== "All" ? 1 : 0) +
+    (statusFilter !== "All" ? 1 : 0) +
+    (dateFrom ? 1 : 0) +
+    (dateTo ? 1 : 0);
+
+  const filteredEvents = events.filter((e) => {
+    const status = displayActivityStatus(e);
+    if (cityFilter !== "All" && e.city !== cityFilter) return false;
+    if (statusFilter !== "All" && status !== statusFilter) return false;
+    if (!inDateRange(e.eventDate, dateFrom, dateTo)) return false;
+    if (!q) return true;
+    return matches(e.title, q);
+  });
+
+  const filteredVolunteers = volunteers.filter((v) => {
+    const status = displayActivityStatus(v);
+    if (cityFilter !== "All" && v.city !== cityFilter) return false;
+    if (statusFilter !== "All" && status !== statusFilter) return false;
+    if (!inDateRange(v.eventDate, dateFrom, dateTo)) return false;
+    if (!q) return true;
+    return matches(v.title, q);
+  });
+
+  const filteredJobs = jobs.filter((j) => {
+    const status = displayJobStatus(j);
+    if (cityFilter !== "All" && j.city !== cityFilter) return false;
+    if (statusFilter !== "All" && status !== statusFilter) return false;
+    if (!inDateRange(j.start, dateFrom, dateTo)) return false;
+    if (!q) return true;
+    return matches(j.title, q);
+  });
+
+  const detailCandidates = candidates.filter((c) => c.jobId === detailId);
+  const candBatchOpts = [
+    { value: "All", label: "All batches" },
+    ...unique(detailCandidates.map((c) => c.batch).filter(Boolean))
+      .sort()
+      .map((batch) => ({ value: batch, label: batch })),
+  ];
+  const candCollegeOpts = [
+    { value: "All", label: "All colleges" },
+    ...unique(detailCandidates.map((c) => c.college).filter(Boolean))
+      .sort()
+      .map((college) => ({ value: college, label: college })),
+  ];
+  const filteredDetailCandidates = detailCandidates.filter((c) => {
+    if (partBatchFilter !== "All" && c.batch !== partBatchFilter) return false;
+    if (partCollegeFilter !== "All" && c.college !== partCollegeFilter) return false;
+    if (!inDateRange(c.appliedAt, partDateFrom, partDateTo)) return false;
+    if (!partQ) return true;
+    return (
+      matches(c.studentId, partQ) ||
+      matches(c.name, partQ) ||
+      matches(c.college, partQ) ||
+      matches(c.batch, partQ)
+    );
+  });
 
   function clearAdvFilters() {
     setBatchFilter("All");
     setCollegeFilter("All");
     setRegionFilter("All");
+    setCityFilter("All");
     setStatusFilter("All");
     setDateFrom("");
     setDateTo("");
@@ -3978,6 +5015,7 @@ export default function StudentManagementPortal() {
         ["College Name", form.college],
         ["Training Region", form.region],
         ["Township", form.township],
+        ["City", form.city],
         ["SA Batch", form.batch],
         ["Gender", form.gender],
         ["Age", form.age],
@@ -3988,15 +5026,19 @@ export default function StudentManagementPortal() {
         ["Education", form.education],
         ["Major", form.major],
         ["Expected Graduation Date", form.graduation],
-        ["Address", form.address],
+        ["Current Address", form.currentAddress],
+        ["Permanent Address", form.permanentAddress],
         ["Status", form.status],
         ...auditPairs(form),
       ];
     }
     if (page === "schools") {
       return [
+        ["Partner School ID", form.partnerSchoolId],
         ["College Name", form.college],
-        ["Region", form.region],
+        ["City", form.city],
+        ["Township", form.township],
+        ["College Type", form.collegeType],
         ["Total Students", form.totalStudents],
         ["Partner Since", form.partnerSince],
         ["Year Established", form.established],
@@ -4006,17 +5048,22 @@ export default function StudentManagementPortal() {
         ["Email", form.email],
         ["College Address", form.address],
         ["College Logo", form.logo],
+        ["College Cover Image", imageDisplayName(form.cover)],
         ["About School", form.about],
         ...auditPairs(form),
       ];
     }
     if (page === "events") {
       return [
+        ["Event ID", form.eventId],
         ["Event Title", form.title],
-        ["Region", form.region],
-        ["Status", form.status],
+        ["Status", detailActivityStatus],
         ["Event Venue", form.venue],
-        ["Event Date and Time", form.datetime],
+        ["Event Date", form.eventDate],
+        ["Event Time", form.eventTime],
+        ["City", form.city],
+        ["Township", form.township],
+        ["Host Name", form.hostName],
         ["Registration Start Date", form.regStart],
         ["Registration End Date", form.regEnd],
         ["Maximum Participants", form.max],
@@ -4030,11 +5077,15 @@ export default function StudentManagementPortal() {
     }
     if (page === "volunteers") {
       return [
+        ["Volunteer ID", form.volunteerId],
         ["Volunteer Title", form.title],
-        ["Region", form.region],
-        ["Status", form.status],
+        ["Status", detailActivityStatus],
         ["Venue", form.venue],
-        ["Volunteer Date and Time", form.datetime],
+        ["Event Date", form.eventDate],
+        ["Event Time", form.eventTime],
+        ["City", form.city],
+        ["Township", form.township],
+        ["Host Name", form.hostName],
         ["Registration Start Date", form.regStart],
         ["Registration End Date", form.regEnd],
         ["Duration", form.duration],
@@ -4048,10 +5099,17 @@ export default function StudentManagementPortal() {
     }
     if (page === "jobs") {
       return [
+        ["Job ID", form.jobId],
         ["Job Title", form.title],
+        ["Status", displayJobStatus({
+          vacancies: form.vacancies || "0",
+          deadline: form.deadline || "",
+          applicants: parseCount(form.applicants || "0"),
+        })],
         ["Job Type", form.type],
         ["Company Name", form.company],
-        ["Location", form.location],
+        ["City", form.city],
+        ["Township", form.township],
         ["Number of Vacancies", form.vacancies],
         ["Application Start Date", form.start],
         ["Application Deadline", form.deadline],
@@ -4264,11 +5322,27 @@ export default function StudentManagementPortal() {
           .sa-light svg text, .sa-modal svg text {
             fill: ${INK} !important;
           }
-          .sa-light main div.sa-template {
+          .sa-light main div.sa-template,
+          .sa-light main div.sa-header-export,
+          .sa-modal div.sa-template {
             color: ${BRAND} !important;
             -webkit-text-fill-color: ${BRAND} !important;
             background: ${WHITE} !important;
             border: 1px solid ${LINE} !important;
+          }
+          .sa-light main div.sa-drop {
+            background: ${WHITE} !important;
+            border: 1px solid ${LINE} !important;
+          }
+          .sa-light main div.sa-drop-item {
+            color: ${INK} !important;
+            -webkit-text-fill-color: ${INK} !important;
+            background: transparent !important;
+          }
+          .sa-light main div.sa-drop-item:hover {
+            color: ${BRAND} !important;
+            -webkit-text-fill-color: ${BRAND} !important;
+            background: ${SOFT} !important;
           }
           .sa-light main div.sa-thumb, .sa-modal div.sa-thumb {
             color: ${WHITE} !important;
@@ -4693,8 +5767,7 @@ export default function StudentManagementPortal() {
                     Edit
                   </BrandButton>
                 )}
-                {(page === "events" || page === "volunteers") &&
-                form.status !== "Cancelled" ? (
+                {showActivityCancel ? (
                   <Button variant="ghost" onClick={openActivityCancel}>
                     Cancel activity
                   </Button>
@@ -4731,6 +5804,39 @@ export default function StudentManagementPortal() {
                   </Stack>
                 </div>
               ) : null}
+              {page === "schools" && (form.cover || form.logo) ? (
+                <div
+                  style={{
+                    background: WHITE,
+                    padding: 20,
+                    borderRadius: 8,
+                    border: `1px solid ${LINE}`,
+                  }}
+                >
+                  <Stack gap={12}>
+                    {form.cover ? (
+                      <Stack gap={10}>
+                        <H2 style={mergeStyle({ color: INK, fontFamily: FONT })}>
+                          College Cover Image
+                        </H2>
+                        <Thumb
+                          label={form.college || "College cover"}
+                          wide
+                          image={form.cover}
+                        />
+                      </Stack>
+                    ) : null}
+                    {form.logo ? (
+                      <Stack gap={10}>
+                        <H2 style={mergeStyle({ color: INK, fontFamily: FONT })}>
+                          College Logo
+                        </H2>
+                        <Thumb label={form.college || "College logo"} image={form.logo} />
+                      </Stack>
+                    ) : null}
+                  </Stack>
+                </div>
+              ) : null}
               {page === "students" ? (
                 <Stack gap={16}>
                   <Stack gap={10}>
@@ -4760,36 +5866,27 @@ export default function StudentManagementPortal() {
                   </Stack>
                   <Stack gap={10}>
                     <H2 style={mergeStyle({ color: INK, fontFamily: FONT })}>
-                      Events & volunteers joined
+                      Activity history
                     </H2>
-                    <Text size="small" style={{ color: MUTED, fontFamily: FONT }}>
-                      Approved registrations from Announcement, grouped by category
-                    </Text>
-                    {studentActivitiesJoined.length ? (
+                    <HistoryTabs
+                      value={activityHistTab}
+                      counts={activityHistCounts}
+                      onChange={setActivityHistTab}
+                    />
+                    {activityHistRows.length ? (
                       <div className="sa-plain-table">
                         <Table
                           striped
-                          headers={[
-                            "Category",
-                            "Title",
-                            "Region",
-                            "Date",
-                            "Applied",
-                            "Status",
-                          ]}
-                          rows={studentActivitiesJoined.map((row) => [
-                            row.category,
+                          headers={["Title", "Applied Date"]}
+                          rows={activityHistRows.map((row) => [
                             row.title,
-                            row.region,
-                            row.datetime,
                             row.appliedAt,
-                            row.status,
                           ])}
                         />
                       </div>
                     ) : (
                       <Text size="small" style={{ color: MUTED, fontFamily: FONT }}>
-                        No approved event or volunteer registrations yet.
+                        No {activityHistTab.toLowerCase()} records yet.
                       </Text>
                     )}
                   </Stack>
@@ -4805,7 +5902,85 @@ export default function StudentManagementPortal() {
                     counts={joinCounts}
                     onChange={setPartTab}
                   />
-                  {tabJoins.length ? (
+                  <Row gap={8} align="center">
+                    <SearchField
+                      value={partSearch}
+                      onChange={setPartSearch}
+                      placeholder="Search participants ..."
+                      width={280}
+                    />
+                    <FilterToggle
+                      open={partAdvOpen}
+                      count={partAdvCount}
+                      onClick={() => setPartAdvOpen(!partAdvOpen)}
+                    />
+                  </Row>
+                  {partAdvOpen ? (
+                    <div
+                      style={{
+                        background: WHITE,
+                        border: `1px solid ${LINE}`,
+                        borderRadius: 8,
+                        padding: 14,
+                      }}
+                    >
+                      <Stack gap={12}>
+                        <Row align="center">
+                          <Text size="small" style={{ color: MUTED, fontFamily: FONT }}>
+                            Filter by SA batch, college, and applied date
+                          </Text>
+                          <Spacer />
+                          <div
+                            className="sa-clear"
+                            onClick={() => {
+                              setPartBatchFilter("All");
+                              setPartCollegeFilter("All");
+                              setPartDateFrom("");
+                              setPartDateTo("");
+                            }}
+                            style={{
+                              fontFamily: FONT,
+                              fontSize: 13,
+                              fontWeight: 600,
+                              color: MUTED,
+                              cursor: "pointer",
+                            }}
+                          >
+                            Clear
+                          </div>
+                        </Row>
+                        <Grid columns={4} gap={12}>
+                          <Field label="SA Batch">
+                            <Select
+                              value={partBatchFilter}
+                              onChange={setPartBatchFilter}
+                              options={partBatchOpts}
+                              style={{ width: "100%" }}
+                            />
+                          </Field>
+                          <Field label="College Name">
+                            <Select
+                              value={partCollegeFilter}
+                              onChange={setPartCollegeFilter}
+                              options={partCollegeOpts}
+                              style={{ width: "100%" }}
+                            />
+                          </Field>
+                          <DateField
+                            label="From date"
+                            value={partDateFrom}
+                            onChange={setPartDateFrom}
+                          />
+                          <DateField
+                            label="To date"
+                            value={partDateTo}
+                            onChange={setPartDateTo}
+                          />
+                        </Grid>
+                      </Stack>
+                    </div>
+                  ) : null}
+                  {filteredTabJoins.length ? (
                     <>
                       <Table
                         stickyHeader
@@ -4816,44 +5991,33 @@ export default function StudentManagementPortal() {
                           "Student Name",
                           "College Name",
                           "SA Batch",
+                          "Current Address",
                           "Phone",
                           "Email",
                           "Applied",
-                          ...(partTab === "Approved" ||
-                          partTab === "Rejected" ||
-                          partTab === "Cancelled"
-                            ? ["Remarks"]
-                            : []),
                           "Action",
                         ]}
-                        rows={tabJoins.map((row) => {
-                          const cells = [
-                            row.studentId,
-                            row.name,
-                            row.college,
-                            row.batch,
-                            row.phone,
-                            row.email,
-                            row.appliedAt,
-                          ];
-                          if (
-                            partTab === "Approved" ||
-                            partTab === "Rejected" ||
-                            partTab === "Cancelled"
-                          ) {
-                            cells.push(row.remarks?.trim() || "—");
-                          }
-                          cells.push(
-                            <ViewDetailsBtn
-                              key={`${row.id}-view`}
-                              onClick={() => setPartViewId(row.id)}
-                            />,
-                          );
-                          return cells;
-                        })}
+                        rows={filteredTabJoins.map((row) => [
+                          row.studentId,
+                          row.name,
+                          row.college,
+                          row.batch,
+                          row.currentAddress?.trim() || "—",
+                          row.phone,
+                          row.email,
+                          row.appliedAt,
+                          <ViewDetailsBtn
+                            key={`${row.id}-view`}
+                            onClick={() => setPartViewId(row.id)}
+                          />,
+                        ])}
                       />
-                      <TablePager total={tabJoins.length} />
+                      <TablePager total={filteredTabJoins.length} />
                     </>
+                  ) : tabJoins.length ? (
+                    <Text size="small" style={{ color: MUTED, fontFamily: FONT }}>
+                      No participants match the current search or filters.
+                    </Text>
                   ) : null}
                 </Stack>
               ) : null}
@@ -4862,30 +6026,120 @@ export default function StudentManagementPortal() {
                   <H2 style={mergeStyle({ color: INK, fontFamily: FONT })}>
                     Candidates
                   </H2>
-                  <Table
-                    stickyHeader
-                    striped
-                    framed={false}
-                    headers={[
-                      "Student ID",
-                      "Student Name",
-                      "College Name",
-                      "SA Batch",
-                      "Phone",
-                      "Email",
-                      "Applied",
-                    ]}
-                    rows={detailCandidates.map((row) => [
-                      row.studentId,
-                      row.name,
-                      row.college,
-                      row.batch,
-                      row.phone,
-                      row.email,
-                      row.appliedAt,
-                    ])}
-                  />
-                  <TablePager total={detailCandidates.length} />
+                  <Row gap={8} align="center">
+                    <SearchField
+                      value={partSearch}
+                      onChange={setPartSearch}
+                      placeholder="Search candidates ..."
+                      width={280}
+                    />
+                    <FilterToggle
+                      open={partAdvOpen}
+                      count={partAdvCount}
+                      onClick={() => setPartAdvOpen(!partAdvOpen)}
+                    />
+                  </Row>
+                  {partAdvOpen ? (
+                    <div
+                      style={{
+                        background: WHITE,
+                        border: `1px solid ${LINE}`,
+                        borderRadius: 8,
+                        padding: 14,
+                      }}
+                    >
+                      <Stack gap={12}>
+                        <Row align="center">
+                          <Text size="small" style={{ color: MUTED, fontFamily: FONT }}>
+                            Filter by SA batch, college, and applied date
+                          </Text>
+                          <Spacer />
+                          <div
+                            className="sa-clear"
+                            onClick={() => {
+                              setPartBatchFilter("All");
+                              setPartCollegeFilter("All");
+                              setPartDateFrom("");
+                              setPartDateTo("");
+                            }}
+                            style={{
+                              fontFamily: FONT,
+                              fontSize: 13,
+                              fontWeight: 600,
+                              color: MUTED,
+                              cursor: "pointer",
+                            }}
+                          >
+                            Clear
+                          </div>
+                        </Row>
+                        <Grid columns={4} gap={12}>
+                          <Field label="SA Batch">
+                            <Select
+                              value={partBatchFilter}
+                              onChange={setPartBatchFilter}
+                              options={candBatchOpts}
+                              style={{ width: "100%" }}
+                            />
+                          </Field>
+                          <Field label="College Name">
+                            <Select
+                              value={partCollegeFilter}
+                              onChange={setPartCollegeFilter}
+                              options={candCollegeOpts}
+                              style={{ width: "100%" }}
+                            />
+                          </Field>
+                          <DateField
+                            label="From date"
+                            value={partDateFrom}
+                            onChange={setPartDateFrom}
+                          />
+                          <DateField
+                            label="To date"
+                            value={partDateTo}
+                            onChange={setPartDateTo}
+                          />
+                        </Grid>
+                      </Stack>
+                    </div>
+                  ) : null}
+                  {filteredDetailCandidates.length ? (
+                    <>
+                      <Table
+                        stickyHeader
+                        striped
+                        framed={false}
+                        headers={[
+                          "Student ID",
+                          "Student Name",
+                          "College Name",
+                          "SA Batch",
+                          "City",
+                          "Current Address",
+                          "Phone",
+                          "Email",
+                          "Applied",
+                        ]}
+                        rows={filteredDetailCandidates.map((row) => [
+                          row.studentId,
+                          row.name,
+                          row.college,
+                          row.batch,
+                          row.city?.trim() || "—",
+                          row.currentAddress?.trim() || "—",
+                          row.phone,
+                          row.email,
+                          row.appliedAt,
+                        ])}
+                      />
+                      <TablePager total={filteredDetailCandidates.length} />
+                    </>
+                  ) : (
+                    <Text size="small" style={{ color: MUTED, fontFamily: FONT }}>
+                      No candidates match the current search or filters.
+                    </Text>
+                  )}
                 </Stack>
               ) : null}
               {page === "certificates" &&
@@ -4923,7 +6177,26 @@ export default function StudentManagementPortal() {
             <>
               <PageIntro
                 title="Student Record"
-                body="Add, view, search, filter, and export Student Ambassador records. Import Batch files in Excel, or add a single ambassador from the popup."
+                body="Add, view, search, filter, and export Student Ambassador records. Use Add to create a single ambassador or upload a batch file."
+                actions={
+                  <Row gap={8} align="center">
+                    <TemplateButton
+                      filename="SA_Student_Import_Template.csv"
+                      csv={STUDENT_TEMPLATE}
+                    />
+                    <HeaderExportButton
+                      onClick={() => flash("Student records exported")}
+                    />
+                    <AddSplitButton
+                      open={menuId === "student-add"}
+                      onToggle={() =>
+                        setMenuId(menuId === "student-add" ? "" : "student-add")
+                      }
+                      onSingle={openAddStudent}
+                      onUpload={openUploadStudents}
+                    />
+                  </Row>
+                }
               />
               <Row gap={8} align="center" wrap>
                 <SearchField
@@ -4937,53 +6210,6 @@ export default function StudentManagementPortal() {
                   count={studentAdvCount}
                   onClick={() => setAdvOpen(!advOpen)}
                 />
-                <Spacer />
-                <Button
-                  variant="secondary"
-                  onClick={() => flash("Student records exported")}
-                >
-                  Export
-                </Button>
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    setForm({ file: "" });
-                    setModal("import");
-                  }}
-                >
-                  Import Excel
-                </Button>
-                <TemplateButton
-                  filename="SA_Student_Import_Template.csv"
-                  csv={STUDENT_TEMPLATE}
-                />
-                <BrandButton
-                  onClick={() =>
-                    openAdd({
-                      studentId: nextStudentId(students),
-                      name: "",
-                      college: schools[0]?.college || "",
-                      region: regions[0]?.name || "Yangon",
-                      township: "",
-                      address: "",
-                      batch: batches.find((b) => b.status === "Active")?.name || "Batch 6",
-                      gender: "Female",
-                      age: "",
-                      dob: "",
-                      payPhone: "",
-                      contactPhone: "",
-                      email: "",
-                      education: "Bachelor",
-                      major: "",
-                      graduation: "",
-                      status: "Active",
-                      avatar: "",
-                      employment: [],
-                    })
-                  }
-                >
-                  Add student
-                </BrandButton>
               </Row>
               {advOpen ? (
                 <div
@@ -4997,7 +6223,7 @@ export default function StudentManagementPortal() {
                   <Stack gap={12}>
                     <Row align="center">
                       <Text size="small" style={{ color: MUTED, fontFamily: FONT }}>
-                        Filter by batch, college, training region, and created date
+                        Filter by batch, college, training region, city, and created date
                       </Text>
                       <Spacer />
                       <div
@@ -5039,9 +6265,77 @@ export default function StudentManagementPortal() {
                           style={{ width: "100%" }}
                         />
                       </Field>
+                      <Field label="City">
+                        <Select
+                          value={cityFilter}
+                          onChange={setCityFilter}
+                          options={cityOpts}
+                          style={{ width: "100%" }}
+                        />
+                      </Field>
                       <DateField label="From date" value={dateFrom} onChange={setDateFrom} />
                       <DateField label="To date" value={dateTo} onChange={setDateTo} />
                     </Grid>
+                  </Stack>
+                </div>
+              ) : null}
+              {studentImportResult ? (
+                <div
+                  style={{
+                    background: WHITE,
+                    border: `1px solid ${LINE}`,
+                    borderRadius: 8,
+                    padding: 14,
+                  }}
+                >
+                  <Stack gap={10}>
+                    <Text weight="semibold" style={{ fontFamily: FONT }}>
+                      Import result
+                    </Text>
+                    <Text size="small" style={{ color: MUTED, fontFamily: FONT }}>
+                      {formatStudentImportResult(studentImportResult)}
+                    </Text>
+                    <Grid columns={4} gap={12}>
+                      {[
+                        ["Total records", studentImportResult.total],
+                        ["Success", studentImportResult.success],
+                        ["Skipped", studentImportResult.skipped],
+                        ["Failed", studentImportResult.fail],
+                      ].map(([label, value]) => (
+                        <div
+                          key={label}
+                          style={{
+                            border: `1px solid ${LINE}`,
+                            borderRadius: 8,
+                            padding: "10px 12px",
+                            background: SOFT,
+                          }}
+                        >
+                          <Text size="small" style={{ color: MUTED, fontFamily: FONT }}>
+                            {label}
+                          </Text>
+                          <Text weight="semibold" style={{ fontFamily: FONT, fontSize: 18 }}>
+                            {value}
+                          </Text>
+                        </div>
+                      ))}
+                    </Grid>
+                    {studentImportResult.invalidRows.length > 0 ? (
+                      <Stack gap={6}>
+                        <Text size="small" weight="medium" style={{ fontFamily: FONT }}>
+                          Invalid rows
+                        </Text>
+                        {studentImportResult.invalidRows.map((row) => (
+                          <Text
+                            key={`${row.row}-${row.studentId}-${row.reason}`}
+                            size="small"
+                            style={{ color: MUTED, fontFamily: FONT }}
+                          >
+                            Row {row.row} · {row.studentId} · {row.reason}
+                          </Text>
+                        ))}
+                      </Stack>
+                    ) : null}
                   </Stack>
                 </div>
               ) : null}
@@ -5055,6 +6349,7 @@ export default function StudentManagementPortal() {
                   "College Name",
                   "Training Region",
                   "Township",
+                  "City",
                   "SA Batch",
                   "Gender",
                   "Age",
@@ -5065,7 +6360,8 @@ export default function StudentManagementPortal() {
                   "Education",
                   "Major",
                   "Expected Graduation Date",
-                  "Address",
+                  "Current Address",
+                  "Permanent Address",
                   "Status",
                   "Action",
                 ]}
@@ -5075,6 +6371,7 @@ export default function StudentManagementPortal() {
                   s.college,
                   s.region,
                   s.township,
+                  s.city,
                   s.batch,
                   s.gender,
                   s.age,
@@ -5085,7 +6382,8 @@ export default function StudentManagementPortal() {
                   s.education,
                   s.major,
                   s.graduation,
-                  s.address,
+                  s.currentAddress,
+                  s.permanentAddress,
                   <StatusMark key={`${s.id}-st`} value={s.status} />,
                   <ViewDetailsBtn
                     key={s.id}
@@ -5103,40 +6401,50 @@ export default function StudentManagementPortal() {
               <PageIntro
                 title="Partner School"
                 body="Register each partner college with contact details, campus profile, and logo for operational reporting."
+                actions={
+                  <Row gap={8} align="center">
+                    <HeaderExportButton
+                      onClick={() => flash("Partner schools exported")}
+                    />
+                    <BrandButton
+                      onClick={() =>
+                        openAdd({
+                          partnerSchoolId: nextPartnerSchoolId(schools),
+                          college: "",
+                          city: "",
+                          township: "",
+                          collegeType: COLLEGE_TYPE_OPTS[0]?.value || "Public University",
+                          totalStudents: "",
+                          partnerSince: "2026",
+                          established: "",
+                          status: "Active",
+                          about: "",
+                          contact: "",
+                          phone: "",
+                          email: "",
+                          address: "",
+                          logo: "",
+                          cover: "",
+                        })
+                      }
+                    >
+                      Add
+                    </BrandButton>
+                  </Row>
+                }
               />
               <Row gap={8} align="center">
                 <SearchField
                   value={search}
                   onChange={setSearch}
-                  placeholder="Search by college name"
-                  width={280}
+                  placeholder="Search by college name or Partner School ID"
+                  width={320}
                 />
                 <FilterToggle
                   open={advOpen}
                   count={schoolAdvCount}
                   onClick={() => setAdvOpen(!advOpen)}
                 />
-                <Spacer />
-                <BrandButton
-                  onClick={() =>
-                    openAdd({
-                      college: "",
-                      region: regions[0]?.name || "Yangon",
-                      totalStudents: "",
-                      partnerSince: "2026",
-                      established: "",
-                      status: "Active",
-                      about: "",
-                      contact: "",
-                      phone: "",
-                      email: "",
-                      address: "",
-                      logo: "",
-                    })
-                  }
-                >
-                  Add school
-                </BrandButton>
               </Row>
               {advOpen ? (
                 <div
@@ -5150,7 +6458,7 @@ export default function StudentManagementPortal() {
                   <Stack gap={12}>
                     <Row align="center">
                       <Text size="small" style={{ color: MUTED, fontFamily: FONT }}>
-                        Filter by region, status, and created date
+                        Filter by city, status, and created date
                       </Text>
                       <Spacer />
                       <div
@@ -5168,11 +6476,11 @@ export default function StudentManagementPortal() {
                       </div>
                     </Row>
                     <Grid columns={4} gap={12}>
-                      <Field label="Region">
+                      <Field label="City">
                         <Select
-                          value={regionFilter}
-                          onChange={setRegionFilter}
-                          options={regionOpts}
+                          value={cityFilter}
+                          onChange={setCityFilter}
+                          options={schoolCityOpts}
                           style={{ width: "100%" }}
                         />
                       </Field>
@@ -5195,8 +6503,11 @@ export default function StudentManagementPortal() {
                 striped
                 framed={false}
                 headers={[
+                  "Partner School ID",
                   "College Name",
-                  "Region",
+                  "City",
+                  "Township",
+                  "College Type",
                   "Total Students",
                   "Partner Since",
                   "Year Established",
@@ -5208,8 +6519,11 @@ export default function StudentManagementPortal() {
                   "Action",
                 ]}
                 rows={filteredSchools.map((s) => [
+                    s.partnerSchoolId,
                     s.college,
-                    s.region,
+                    s.city,
+                    s.township,
+                    s.collegeType,
                     s.totalStudents,
                     s.partnerSince,
                     s.established,
@@ -5233,50 +6547,116 @@ export default function StudentManagementPortal() {
               <PageIntro
                 title="Event Management"
                 body="Create, update, and monitor KBZPay Student Ambassador events, including registration windows and participant capacity."
+                actions={
+                  <BrandButton
+                    onClick={() =>
+                      openAdd({
+                        title: "",
+                        eventId: nextEventId(events),
+                        status: "Active",
+                        venue: "",
+                        eventDate: "",
+                        eventTime: "",
+                        city: "",
+                        township: "",
+                        hostName: "",
+                        regStart: "",
+                        regEnd: "",
+                        max: "",
+                        summary: "",
+                        details: "",
+                        cover: "",
+                        meeting: "",
+                        sendSms: "no",
+                      })
+                    }
+                  >
+                    Add
+                  </BrandButton>
+                }
               />
               <Row gap={8} align="center">
                 <SearchField
                   value={search}
                   onChange={setSearch}
-                  placeholder="Search here ..."
+                  placeholder="Search by title"
                   width={280}
                 />
-                <Spacer />
-                <BrandButton
-                  onClick={() =>
-                    openAdd({
-                      title: "",
-                      region: regions[0]?.name || "Yangon",
-                      status: "Active",
-                      venue: "",
-                      datetime: "",
-                      regStart: "",
-                      regEnd: "",
-                      max: "",
-                      summary: "",
-                      details: "",
-                      cover: "",
-                      meeting: "",
-                      sendSms: "no",
-                    })
-                  }
-                >
-                  Add event
-                </BrandButton>
+                <FilterToggle
+                  open={advOpen}
+                  count={activityAdvCount}
+                  onClick={() => setAdvOpen(!advOpen)}
+                />
               </Row>
+              {advOpen ? (
+                <div
+                  style={{
+                    background: WHITE,
+                    border: `1px solid ${LINE}`,
+                    borderRadius: 8,
+                    padding: 14,
+                  }}
+                >
+                  <Stack gap={12}>
+                    <Row align="center">
+                      <Text size="small" style={{ color: MUTED, fontFamily: FONT }}>
+                        Filter by city, status, and event date
+                      </Text>
+                      <Spacer />
+                      <div
+                        className="sa-clear"
+                        onClick={clearAdvFilters}
+                        style={{
+                          fontFamily: FONT,
+                          fontSize: 13,
+                          fontWeight: 600,
+                          color: MUTED,
+                          cursor: "pointer",
+                        }}
+                      >
+                        Clear
+                      </div>
+                    </Row>
+                    <Grid columns={4} gap={12}>
+                      <Field label="City">
+                        <Select
+                          value={cityFilter}
+                          onChange={setCityFilter}
+                          options={eventCityOpts}
+                          style={{ width: "100%" }}
+                        />
+                      </Field>
+                      <Field label="Status">
+                        <Select
+                          value={statusFilter}
+                          onChange={setStatusFilter}
+                          options={activityStatusFilterOpts}
+                          style={{ width: "100%" }}
+                        />
+                      </Field>
+                      <DateField label="From date" value={dateFrom} onChange={setDateFrom} />
+                      <DateField label="To date" value={dateTo} onChange={setDateTo} />
+                    </Grid>
+                  </Stack>
+                </div>
+              ) : null}
               <Table
                 stickyHeader
                 striped
                 framed={false}
-                rowTone={events.map((e) =>
-                  e.status === "Active" ? "success" : "neutral",
+                rowTone={filteredEvents.map((e) =>
+                  activityStatusTone(displayActivityStatus(e)),
                 )}
                 headers={[
+                  "Event ID",
                   "Event Title",
-                  "Region",
                   "Status",
                   "Venue",
-                  "Date and Time",
+                  "Event Date",
+                  "Event Time",
+                  "City",
+                  "Township",
+                  "Host Name",
                   "Reg. Start",
                   "Reg. End",
                   "Max",
@@ -5284,16 +6664,18 @@ export default function StudentManagementPortal() {
                   "Meeting Link",
                   "Action",
                 ]}
-                rows={events
-                  .filter((e) =>
-                    q ? matches(`${e.title} ${e.venue} ${e.region}`, q) : true,
-                  )
-                  .map((e) => [
+                rows={filteredEvents.map((e) => {
+                  const status = displayActivityStatus(e);
+                  return [
+                    e.eventId,
                     e.title,
-                    e.region,
-                    <StatusMark key={`${e.id}-st`} value={e.status} />,
+                    <StatusMark key={`${e.id}-st`} value={status} />,
                     e.venue,
-                    e.datetime,
+                    e.eventDate,
+                    e.eventTime,
+                    e.city,
+                    e.township,
+                    e.hostName,
                     e.regStart,
                     e.regEnd,
                     e.max,
@@ -5302,11 +6684,16 @@ export default function StudentManagementPortal() {
                     <ViewDetailsBtn
                       key={`${e.id}-a`}
                       onClick={() =>
-                        openDetails(e.id, { ...e, registered: String(e.registered) })
+                        openDetails(e.id, {
+                          ...e,
+                          registered: String(e.registered),
+                        })
                       }
                     />,
-                  ])}
+                  ];
+                })}
               />
+              <TablePager total={filteredEvents.length} />
             </>
           ) : null}
 
@@ -5315,41 +6702,116 @@ export default function StudentManagementPortal() {
               <PageIntro
                 title="Volunteer Management"
                 body="Publish volunteer activities, control registration dates, and track participant capacity by region."
+                actions={
+                  <BrandButton
+                    onClick={() =>
+                      openAdd({
+                        title: "",
+                        volunteerId: nextVolunteerId(volunteers),
+                        status: "Active",
+                        venue: "",
+                        eventDate: "",
+                        eventTime: "",
+                        city: "",
+                        township: "",
+                        hostName: "",
+                        regStart: "",
+                        regEnd: "",
+                        duration: "",
+                        max: "",
+                        summary: "",
+                        details: "",
+                        cover: "",
+                        sendSms: "no",
+                      })
+                    }
+                  >
+                    Add
+                  </BrandButton>
+                }
               />
               <Row gap={8} align="center">
-                <Spacer />
-                <BrandButton
-                  onClick={() =>
-                    openAdd({
-                      title: "",
-                      region: regions[0]?.name || "Yangon",
-                      status: "Active",
-                      venue: "",
-                      datetime: "",
-                      regStart: "",
-                      regEnd: "",
-                      duration: "",
-                      max: "",
-                      summary: "",
-                      details: "",
-                      cover: "",
-                      sendSms: "no",
-                    })
-                  }
-                >
-                  Add volunteer
-                </BrandButton>
+                <SearchField
+                  value={search}
+                  onChange={setSearch}
+                  placeholder="Search by title"
+                  width={280}
+                />
+                <FilterToggle
+                  open={advOpen}
+                  count={activityAdvCount}
+                  onClick={() => setAdvOpen(!advOpen)}
+                />
               </Row>
+              {advOpen ? (
+                <div
+                  style={{
+                    background: WHITE,
+                    border: `1px solid ${LINE}`,
+                    borderRadius: 8,
+                    padding: 14,
+                  }}
+                >
+                  <Stack gap={12}>
+                    <Row align="center">
+                      <Text size="small" style={{ color: MUTED, fontFamily: FONT }}>
+                        Filter by city, status, and event date
+                      </Text>
+                      <Spacer />
+                      <div
+                        className="sa-clear"
+                        onClick={clearAdvFilters}
+                        style={{
+                          fontFamily: FONT,
+                          fontSize: 13,
+                          fontWeight: 600,
+                          color: MUTED,
+                          cursor: "pointer",
+                        }}
+                      >
+                        Clear
+                      </div>
+                    </Row>
+                    <Grid columns={4} gap={12}>
+                      <Field label="City">
+                        <Select
+                          value={cityFilter}
+                          onChange={setCityFilter}
+                          options={volunteerCityOpts}
+                          style={{ width: "100%" }}
+                        />
+                      </Field>
+                      <Field label="Status">
+                        <Select
+                          value={statusFilter}
+                          onChange={setStatusFilter}
+                          options={activityStatusFilterOpts}
+                          style={{ width: "100%" }}
+                        />
+                      </Field>
+                      <DateField label="From date" value={dateFrom} onChange={setDateFrom} />
+                      <DateField label="To date" value={dateTo} onChange={setDateTo} />
+                    </Grid>
+                  </Stack>
+                </div>
+              ) : null}
               <Table
                 stickyHeader
                 striped
                 framed={false}
+                rowTone={filteredVolunteers.map((v) =>
+                  activityStatusTone(displayActivityStatus(v)),
+                )}
                 headers={[
+                  "Volunteer ID",
                   "Volunteer Title",
-                  "Region",
                   "Status",
                   "Venue",
-                  "Date and Time",
+                  "Event Date",
+                  "Event Time",
+                  "City",
+                  "Township",
+                  "Host Name",
                   "Reg. Start",
                   "Reg. End",
                   "Duration",
@@ -5357,25 +6819,36 @@ export default function StudentManagementPortal() {
                   "Registered",
                   "Action",
                 ]}
-                rows={volunteers.map((v) => [
-                  v.title,
-                  v.region,
-                  <StatusMark key={`${v.id}-st`} value={v.status} />,
-                  v.venue,
-                  v.datetime,
-                  v.regStart,
-                  v.regEnd,
-                  v.duration,
-                  v.max,
-                  String(v.registered),
-                  <ViewDetailsBtn
-                    key={`${v.id}-a`}
-                    onClick={() =>
-                      openDetails(v.id, { ...v, registered: String(v.registered) })
-                    }
-                  />,
-                ])}
+                rows={filteredVolunteers.map((v) => {
+                  const status = displayActivityStatus(v);
+                  return [
+                    v.volunteerId,
+                    v.title,
+                    <StatusMark key={`${v.id}-st`} value={status} />,
+                    v.venue,
+                    v.eventDate,
+                    v.eventTime,
+                    v.city,
+                    v.township,
+                    v.hostName,
+                    v.regStart,
+                    v.regEnd,
+                    v.duration,
+                    v.max,
+                    String(v.registered),
+                    <ViewDetailsBtn
+                      key={`${v.id}-a`}
+                      onClick={() =>
+                        openDetails(v.id, {
+                          ...v,
+                          registered: String(v.registered),
+                        })
+                      }
+                    />,
+                  ];
+                })}
               />
+              <TablePager total={filteredVolunteers.length} />
             </>
           ) : null}
 
@@ -5384,63 +6857,142 @@ export default function StudentManagementPortal() {
               <PageIntro
                 title="Job Management"
                 body="Post and monitor job opportunities for Student Ambassadors. Track vacancies, application windows, and incoming applicants."
+                actions={
+                  <BrandButton
+                    onClick={() =>
+                      openAdd({
+                        title: "",
+                        jobId: nextJobId(jobs),
+                        type: "Internship",
+                        company: "KBZPay",
+                        city: "",
+                        township: "",
+                        vacancies: "",
+                        start: "",
+                        deadline: "",
+                        summary: "",
+                        responsibilities: "",
+                        requirements: "",
+                        pdf: "",
+                        cover: "",
+                        sendSms: "no",
+                      })
+                    }
+                  >
+                    Add
+                  </BrandButton>
+                }
               />
-              <Row>
-                <Spacer />
-                <BrandButton
-                  onClick={() =>
-                    openAdd({
-                      title: "",
-                      type: "Internship",
-                      company: "KBZPay",
-                      location: "Yangon",
-                      vacancies: "",
-                      start: "",
-                      deadline: "",
-                      summary: "",
-                      responsibilities: "",
-                      requirements: "",
-                      pdf: "",
-                      cover: "",
-                      sendSms: "no",
-                    })
-                  }
-                >
-                  Add job
-                </BrandButton>
+              <Row gap={8} align="center">
+                <SearchField
+                  value={search}
+                  onChange={setSearch}
+                  placeholder="Search by title"
+                  width={280}
+                />
+                <FilterToggle
+                  open={advOpen}
+                  count={activityAdvCount}
+                  onClick={() => setAdvOpen(!advOpen)}
+                />
               </Row>
+              {advOpen ? (
+                <div
+                  style={{
+                    background: WHITE,
+                    border: `1px solid ${LINE}`,
+                    borderRadius: 8,
+                    padding: 14,
+                  }}
+                >
+                  <Stack gap={12}>
+                    <Row align="center">
+                      <Text size="small" style={{ color: MUTED, fontFamily: FONT }}>
+                        Filter by city, status, and apply start date
+                      </Text>
+                      <Spacer />
+                      <div
+                        className="sa-clear"
+                        onClick={clearAdvFilters}
+                        style={{
+                          fontFamily: FONT,
+                          fontSize: 13,
+                          fontWeight: 600,
+                          color: MUTED,
+                          cursor: "pointer",
+                        }}
+                      >
+                        Clear
+                      </div>
+                    </Row>
+                    <Grid columns={4} gap={12}>
+                      <Field label="City">
+                        <Select
+                          value={cityFilter}
+                          onChange={setCityFilter}
+                          options={jobCityOpts}
+                          style={{ width: "100%" }}
+                        />
+                      </Field>
+                      <Field label="Status">
+                        <Select
+                          value={statusFilter}
+                          onChange={setStatusFilter}
+                          options={jobStatusFilterOpts}
+                          style={{ width: "100%" }}
+                        />
+                      </Field>
+                      <DateField label="From date" value={dateFrom} onChange={setDateFrom} />
+                      <DateField label="To date" value={dateTo} onChange={setDateTo} />
+                    </Grid>
+                  </Stack>
+                </div>
+              ) : null}
               <Table
                 stickyHeader
                 striped
                 framed={false}
+                rowTone={filteredJobs.map((j) =>
+                  activityStatusTone(displayJobStatus(j)),
+                )}
                 headers={[
+                  "Job ID",
                   "Job Title",
+                  "Status",
                   "Job Type",
                   "Company",
-                  "Location",
+                  "City",
+                  "Township",
                   "Vacancies",
                   "Apply Start",
                   "Deadline",
                   "Applicants",
                   "Action",
                 ]}
-                rows={jobs.map((j) => [
-                  j.title,
-                  j.type,
-                  j.company,
-                  j.location,
-                  j.vacancies,
-                  j.start,
-                  j.deadline,
-                  String(j.applicants),
-                  <ViewDetailsBtn
-                    key={j.id}
-                    onClick={() =>
-                      openDetails(j.id, { ...j, applicants: String(j.applicants) })
-                    }
-                  />,
-                ])}
+                rows={filteredJobs.map((j) => {
+                  const status = displayJobStatus(j);
+                  return [
+                    j.jobId,
+                    j.title,
+                    <StatusMark key={`${j.id}-st`} value={status} />,
+                    j.type,
+                    j.company,
+                    j.city,
+                    j.township,
+                    j.vacancies,
+                    j.start,
+                    j.deadline,
+                    String(j.applicants),
+                    <ViewDetailsBtn
+                      key={j.id}
+                      onClick={() =>
+                        openDetails(j.id, { ...j, applicants: String(j.applicants) })
+                      }
+                    />,
+                  ];
+                })}
               />
+              <TablePager total={filteredJobs.length} />
             </>
           ) : null}
 
@@ -5449,6 +7001,22 @@ export default function StudentManagementPortal() {
               <PageIntro
                 title="KPI Management"
                 body="Import Student Ambassador KPI scores from Excel. The portal validates rows before updating attendance, operations, onboarding, social media, assignment, and total KPI."
+                actions={
+                  <Row gap={8} align="center">
+                    <TemplateButton
+                      filename="SA_KPI_Import_Template.csv"
+                      csv={KPI_TEMPLATE}
+                    />
+                    <BrandButton
+                      onClick={() => {
+                        setForm({ file: "" });
+                        setModal("import");
+                      }}
+                    >
+                      Import KPI
+                    </BrandButton>
+                  </Row>
+                }
               />
               {kpiImported ? (
                 <Callout
@@ -5463,21 +7031,6 @@ export default function StudentManagementPortal() {
                   {kpiImported}
                 </Callout>
               ) : null}
-              <Row>
-                <Spacer />
-                <TemplateButton
-                  filename="SA_KPI_Import_Template.csv"
-                  csv={KPI_TEMPLATE}
-                />
-                <BrandButton
-                  onClick={() => {
-                    setForm({ file: "" });
-                    setModal("import");
-                  }}
-                >
-                  Import KPI
-                </BrandButton>
-              </Row>
               <Table
                 stickyHeader
                 striped
@@ -5546,29 +7099,28 @@ export default function StudentManagementPortal() {
               <PageIntro
                 title="Hall of Fame"
                 body="Recognize outstanding Student Ambassadors and placement outcomes by category, title, and year."
+                actions={
+                  <BrandButton
+                    onClick={() =>
+                      openAdd({
+                        studentId: students[0]?.studentId || "",
+                        name: students[0]?.name || "",
+                        college: students[0]?.college || "",
+                        batch: students[0]?.batch || "",
+                        category: FAME_CATEGORY_OPTS[0]?.value || "",
+                        title: FAME_TITLE_OPTS["Highest Onboarding"][0]?.value || "",
+                        year: "2026",
+                        employmentType: "Intern",
+                        department: "",
+                        joinDate: "",
+                        endDate: "",
+                      })
+                    }
+                  >
+                    Add
+                  </BrandButton>
+                }
               />
-              <Row>
-                <Spacer />
-                <BrandButton
-                  onClick={() =>
-                    openAdd({
-                      studentId: students[0]?.studentId || "",
-                      name: students[0]?.name || "",
-                      college: students[0]?.college || "",
-                      batch: students[0]?.batch || "",
-                      category: FAME_CATEGORY_OPTS[0]?.value || "",
-                      title: FAME_TITLE_OPTS["Highest Onboarding"][0]?.value || "",
-                      year: "2026",
-                      employmentType: "Intern",
-                      department: "",
-                      joinDate: "",
-                      endDate: "",
-                    })
-                  }
-                >
-                  Add award
-                </BrandButton>
-              </Row>
               <Table
                 stickyHeader
                 striped
@@ -5605,26 +7157,25 @@ export default function StudentManagementPortal() {
               <PageIntro
                 title="Certificate Management"
                 body="Upload, manage, and distribute certificates as ZIP files organized by Student Ambassador batch and certificate category."
+                actions={
+                  <BrandButton
+                    onClick={() => {
+                      const batch =
+                        batches.find((b) => b.status === "Active")?.name ||
+                        "Batch 6";
+                      openAdd({
+                        batch,
+                        category: certCats[0]?.name || "Completion",
+                        file: "",
+                        count: "",
+                        totalStudents: String(batchStudentCount(batch, students)),
+                      });
+                    }}
+                  >
+                    Upload ZIP
+                  </BrandButton>
+                }
               />
-              <Row>
-                <Spacer />
-                <BrandButton
-                  onClick={() => {
-                    const batch =
-                      batches.find((b) => b.status === "Active")?.name ||
-                      "Batch 6";
-                    openAdd({
-                      batch,
-                      category: certCats[0]?.name || "Completion",
-                      file: "",
-                      count: "",
-                      totalStudents: String(batchStudentCount(batch, students)),
-                    });
-                  }}
-                >
-                  Upload ZIP
-                </BrandButton>
-              </Row>
               <Table
                 stickyHeader
                 striped
@@ -5668,26 +7219,24 @@ export default function StudentManagementPortal() {
               <PageIntro
                 title="Banner Management"
                 body="Create homepage banners linked to Announcement or Hall of Fame categories."
-              />
-              <Row>
-                <Spacer />
-                <BrandButton
-                  onClick={() => {
-                    const source = "Announcement";
-                    const category = defaultBannerCategory(source);
-                    const linkedTitle =
-                      defaultBannerTitle(
+                actions={
+                  <BrandButton
+                    onClick={() => {
+                      const source = "Announcement";
+                      const category = defaultBannerCategory(source);
+                      const linkedTitle =
+                        defaultBannerTitle(
+                          source,
+                          category,
+                          events,
+                          volunteers,
+                          jobs,
+                          fame,
+                        ) || "";
+                      openAdd({
+                        title: linkedTitle,
+                        status: "Active",
                         source,
-                        category,
-                        events,
-                        volunteers,
-                        jobs,
-                        fame,
-                      ) || "";
-                    openAdd({
-                      title: linkedTitle,
-                      status: "Active",
-                      source,
                       category,
                       linkedTitle,
                       link: bannerLinkFor(source, category, linkedTitle),
@@ -5697,9 +7246,10 @@ export default function StudentManagementPortal() {
                     });
                   }}
                 >
-                  Add banner
+                  Add
                 </BrandButton>
-              </Row>
+                }
+              />
               <Grid columns={3} gap={14}>
                 {banners.map((b) => (
                   <div key={b.id}>
@@ -5799,7 +7349,19 @@ export default function StudentManagementPortal() {
 
           {master ? (
             <>
-              <PageIntro title={master.title} body={master.body} />
+              <PageIntro
+                title={master.title}
+                body={master.body}
+                actions={
+                  <BrandButton
+                    onClick={() =>
+                      openAdd({ name: "", extra: "", status: "Active" })
+                    }
+                  >
+                    Add
+                  </BrandButton>
+                }
+              />
               <Row gap={8} align="center">
                 <SearchField
                   value={search}
@@ -5807,14 +7369,6 @@ export default function StudentManagementPortal() {
                   placeholder="Search here ..."
                   width={280}
                 />
-                <Spacer />
-                <BrandButton
-                  onClick={() =>
-                    openAdd({ name: "", extra: "", status: "Active" })
-                  }
-                >
-                  Add record
-                </BrandButton>
               </Row>
               <Table
                 stickyHeader
@@ -5851,61 +7405,81 @@ export default function StudentManagementPortal() {
 
       {modal !== "closed" && page === "students" && modal === "import" ? (
         <ModalShell title="Import Student Ambassador records" onClose={closeModal}>
-          <Text tone="secondary">
-            Upload an Excel (.xlsx) file. Columns must match the student list:
-            Student ID through Expected Graduation.
-          </Text>
-          <FilePick
-            label="Excel file"
-            accept=".xlsx,.xls"
-            value={form.file || ""}
-            onChange={(name) => setField("file", name)}
-          />
+          <Stack gap={12}>
+            <Text tone="secondary">
+              Upload an Excel (.xlsx) file. Columns must match the student import
+              template, including Current Address and Permanent Address.
+            </Text>
+            <TemplateButton
+              filename="SA_Student_Import_Template.csv"
+              csv={STUDENT_TEMPLATE}
+            />
+            <div
+              style={{
+                background: SOFT,
+                border: `1px solid ${LINE}`,
+                borderRadius: 8,
+                padding: 12,
+              }}
+            >
+              <Stack gap={6}>
+                <Text size="small" weight="medium" style={{ fontFamily: FONT }}>
+                  Validation notes
+                </Text>
+                {STUDENT_IMPORT_NOTES.map((note) => (
+                  <Text
+                    key={note}
+                    size="small"
+                    style={{ color: MUTED, fontFamily: FONT }}
+                  >
+                    · {note}
+                  </Text>
+                ))}
+              </Stack>
+            </div>
+            <FilePick
+              label="Excel file"
+              accept=".xlsx,.xls,.csv"
+              value={form.file || ""}
+              onFileChange={(file) => {
+                const lower = file.name.toLowerCase();
+                if (
+                  !lower.endsWith(".xlsx") &&
+                  !lower.endsWith(".xls") &&
+                  !lower.endsWith(".csv")
+                ) {
+                  flash("Only Excel files are supported.");
+                  return;
+                }
+                const reader = new FileReader();
+                reader.onload = () => {
+                  const result =
+                    typeof reader.result === "string" ? reader.result : "";
+                  setForm({ file: file.name, importText: result });
+                };
+                reader.readAsText(file);
+              }}
+            />
+          </Stack>
           <Row>
             <Spacer />
             <Button variant="ghost" onClick={closeModal}>
               Cancel
             </Button>
             <BrandButton
-              disabled={!form.file}
+              disabled={!form.file || !form.importText}
               onClick={() => {
-                const extras: Student[] = [
-                  {
-                    id: uid("s"),
-                    studentId: nextStudentId(students),
-                    name: "Hnin Wai Lwin",
-                    college: "Dagon University",
-                    region: "Yangon",
-                    township: "East Dagon",
-                    address: "Ward 12, East Dagon",
-                    batch: "Batch 6",
-                    gender: "Female",
-                    age: "20",
-                    dob: "2006-04-11",
-                    payPhone: "09 888 221 009",
-                    contactPhone: "09 888 221 010",
-                    email: "hninwai.lwin@dagon.edu.mm",
-                    education: "Bachelor",
-                    major: "English",
-                    graduation: "2028-05-20",
-                    status: "Active",
-                    avatar: avatarDataUri("Hnin Wai Lwin", BRAND),
-                    employment: [
-                      {
-                        id: uid("emp"),
-                        type: "Intern",
-                        position: "Software Developer",
-                        department: "Digital Products",
-                        joinDate: "2026-08-01",
-                        endDate: "2027-01-31",
-                      },
-                    ],
-                    ...stampAudit({}, false),
-                  },
-                ];
-                setStudents([...extras, ...students]);
+                const result = importStudentRows(form.importText || "", students);
+                if (result.accepted.length > 0) {
+                  setStudents([...result.accepted, ...students]);
+                }
+                setStudentImportResult(result);
                 closeModal();
-                flash("successfully added");
+                flash(
+                  result.success > 0
+                    ? `${result.success} student record(s) imported`
+                    : "Import completed with no new records",
+                );
               }}
             >
               Import
@@ -5951,6 +7525,7 @@ export default function StudentManagementPortal() {
                   ["College Name", form.college],
                   ["Training Region", form.region],
                   ["Township", form.township],
+                  ["City", form.city],
                   ["SA Batch", form.batch],
                   ["Gender", form.gender],
                   ["Age", form.age],
@@ -5961,7 +7536,8 @@ export default function StudentManagementPortal() {
                   ["Education", form.education],
                   ["Major", form.major],
                   ["Expected Graduation Date", form.graduation],
-                  ["Address", form.address],
+                  ["Current Address", form.currentAddress],
+                  ["Permanent Address", form.permanentAddress],
                   ["Status", form.status],
                   ...auditPairs(form),
                 ]}
@@ -6027,6 +7603,12 @@ export default function StudentManagementPortal() {
                 <TextInput
                   value={form.township || ""}
                   onChange={(v) => setField("township", v)}
+                />
+              </Field>
+              <Field label="City">
+                <TextInput
+                  value={form.city || ""}
+                  onChange={(v) => setField("city", v)}
                 />
               </Field>
               <Field label="SA Batch">
@@ -6105,13 +7687,22 @@ export default function StudentManagementPortal() {
             </Stack>
           )}
           {modal !== "view" ? (
-            <Field label="Address">
-              <TextArea
-                value={form.address || ""}
-                onChange={(v) => setField("address", v)}
-                rows={2}
-              />
-            </Field>
+            <Grid columns={2} gap={12}>
+              <Field label="Current Address">
+                <TextArea
+                  value={form.currentAddress || ""}
+                  onChange={(v) => setField("currentAddress", v)}
+                  rows={2}
+                />
+              </Field>
+              <Field label="Permanent Address">
+                <TextArea
+                  value={form.permanentAddress || ""}
+                  onChange={(v) => setField("permanentAddress", v)}
+                  rows={2}
+                />
+              </Field>
+            </Grid>
           ) : null}
           {modal === "view" ? (
             <Stack gap={10}>
@@ -6215,9 +7806,11 @@ export default function StudentManagementPortal() {
           )}
           <Row>
             <Spacer />
-            <Button variant="ghost" onClick={closeModal}>
-              {modal === "view" ? "Close" : "Cancel"}
-            </Button>
+            {modal !== "view" ? (
+              <Button variant="ghost" onClick={closeModal}>
+                Cancel
+              </Button>
+            ) : null}
             {modal !== "view" ? (
               <BrandButton
                 onClick={() => {
@@ -6228,7 +7821,9 @@ export default function StudentManagementPortal() {
                     college: form.college || "",
                     region: form.region || "",
                     township: form.township || "",
-                    address: form.address || "",
+                    city: form.city || "",
+                    currentAddress: form.currentAddress || "",
+                    permanentAddress: form.permanentAddress || "",
                     batch: form.batch || "",
                     gender: form.gender || "",
                     age: form.age || "",
@@ -6283,8 +7878,11 @@ export default function StudentManagementPortal() {
             <Stack gap={12}>
               <ReadGrid
                 pairs={[
+                  ["Partner School ID", form.partnerSchoolId],
                   ["College Name", form.college],
-                  ["Region", form.region],
+                  ["City", form.city],
+                  ["Township", form.township],
+                  ["College Type", form.collegeType],
                   ["Total Students", form.totalStudents],
                   ["Partner Since", form.partnerSince],
                   ["Year Established", form.established],
@@ -6294,6 +7892,7 @@ export default function StudentManagementPortal() {
                   ["Email", form.email],
                   ["College Address", form.address],
                   ["College Logo", form.logo],
+                  ["College Cover Image", imageDisplayName(form.cover)],
                   ...auditPairs(form),
                 ]}
               />
@@ -6302,17 +7901,32 @@ export default function StudentManagementPortal() {
           ) : (
             <>
               <Grid columns={2} gap={12}>
+                <Field label="Partner School ID">
+                  <LockedValue value={form.partnerSchoolId} />
+                </Field>
                 <Field label="College Name">
                   <TextInput
                     value={form.college || ""}
                     onChange={(v) => setField("college", v)}
                   />
                 </Field>
-                <Field label="Region">
+                <Field label="City">
+                  <TextInput
+                    value={form.city || ""}
+                    onChange={(v) => setField("city", v)}
+                  />
+                </Field>
+                <Field label="Township">
+                  <TextInput
+                    value={form.township || ""}
+                    onChange={(v) => setField("township", v)}
+                  />
+                </Field>
+                <Field label="College Type">
                   <Select
-                    value={form.region || ""}
-                    onChange={(v) => setField("region", v)}
-                    options={regionSelect}
+                    value={form.collegeType || COLLEGE_TYPE_OPTS[0]?.value || ""}
+                    onChange={(v) => setField("collegeType", v)}
+                    options={COLLEGE_TYPE_OPTS}
                   />
                 </Field>
                 <Field label="Total Students">
@@ -6363,6 +7977,14 @@ export default function StudentManagementPortal() {
                   accept="image/*"
                   value={form.logo || ""}
                   onChange={(n) => setField("logo", n)}
+                  onImageChange={(dataUrl) => setField("logo", dataUrl)}
+                />
+                <FilePick
+                  label="College Cover Image"
+                  accept="image/*"
+                  value={form.cover || ""}
+                  onChange={(n) => setField("cover", n)}
+                  onImageChange={(dataUrl) => setField("cover", dataUrl)}
                 />
               </Grid>
               <Field label="College Address">
@@ -6382,16 +8004,25 @@ export default function StudentManagementPortal() {
           )}
           <Row>
             <Spacer />
-            <Button variant="ghost" onClick={closeModal}>
-              {modal === "view" ? "Close" : "Cancel"}
-            </Button>
+            {modal !== "view" ? (
+              <Button variant="ghost" onClick={closeModal}>
+                Cancel
+              </Button>
+            ) : null}
             {modal !== "view" ? (
               <BrandButton
                 onClick={() => {
                   const row: School = {
                     id: modal === "edit" ? editId : uid("c"),
+                    partnerSchoolId:
+                      form.partnerSchoolId || nextPartnerSchoolId(schools),
                     college: form.college || "New College",
-                    region: form.region || "",
+                    city: form.city || "",
+                    township: form.township || "",
+                    collegeType:
+                      form.collegeType ||
+                      COLLEGE_TYPE_OPTS[0]?.value ||
+                      "Public University",
                     totalStudents: form.totalStudents || "0",
                     partnerSince: form.partnerSince || "",
                     established: form.established || "",
@@ -6402,6 +8033,7 @@ export default function StudentManagementPortal() {
                     email: form.email || "",
                     address: form.address || "",
                     logo: form.logo || "logo.png",
+                    cover: form.cover || "",
                     ...stampAudit(form, modal === "edit"),
                   };
                   setSchools(
@@ -6436,11 +8068,25 @@ export default function StudentManagementPortal() {
           {modal === "view" ? (
             <ReadGrid
               pairs={[
+                ["Event ID", form.eventId],
                 ["Event Title", form.title],
-                ["Region", form.region],
-                ["Status", form.status],
+                [
+                  "Status",
+                  displayActivityStatus({
+                    status: form.status || "",
+                    eventDate: form.eventDate || "",
+                    eventTime: form.eventTime || "",
+                    regEnd: form.regEnd || "",
+                    max: form.max || "0",
+                    registered: parseCount(form.registered || "0"),
+                  }),
+                ],
                 ["Event Venue", form.venue],
-                ["Event Date and Time", form.datetime],
+                ["Event Date", form.eventDate],
+                ["Event Time", form.eventTime],
+                ["City", form.city],
+                ["Township", form.township],
+                ["Host Name", form.hostName],
                 ["Registration Start Date", form.regStart],
                 ["Registration End Date", form.regEnd],
                 ["Maximum Participants", form.max],
@@ -6459,6 +8105,9 @@ export default function StudentManagementPortal() {
                 </Text>
               ) : null}
               <Grid columns={2} gap={12}>
+                <Field label="Event ID">
+                  <LockedValue value={form.eventId || nextEventId(events)} />
+                </Field>
                 <Field label="Event Title">
                   {modal === "edit" && detailHasParticipants ? (
                     <LockedValue value={form.title} />
@@ -6469,26 +8118,16 @@ export default function StudentManagementPortal() {
                     />
                   )}
                 </Field>
-                <Field label="Region">
-                  {modal === "edit" && detailHasParticipants ? (
-                    <LockedValue value={form.region} />
-                  ) : (
-                    <Select
-                      value={form.region || ""}
-                      onChange={(v) => setField("region", v)}
-                      options={regionSelect}
-                    />
-                  )}
-                </Field>
                 <Field label="Status">
-                  <Select
-                    value={form.status || "Active"}
-                    onChange={(v) => setField("status", v)}
-                    options={
-                      form.status === "Cancelled"
-                        ? ACTIVITY_STATUS_OPTS
-                        : STATUS_OPTS
-                    }
+                  <LockedValue
+                    value={displayActivityStatus({
+                      status: form.status || "",
+                      eventDate: form.eventDate || "",
+                      eventTime: form.eventTime || "",
+                      regEnd: form.regEnd || "",
+                      max: form.max || "0",
+                      registered: parseCount(form.registered || "0"),
+                    })}
                   />
                 </Field>
                 <Field label="Event Venue">
@@ -6501,14 +8140,55 @@ export default function StudentManagementPortal() {
                     />
                   )}
                 </Field>
-                <Field label="Event Date and Time">
+                <Field label="Event Date">
                   {modal === "edit" && detailHasParticipants ? (
-                    <LockedValue value={form.datetime} />
+                    <LockedValue value={form.eventDate} />
                   ) : (
                     <TextInput
-                      value={form.datetime || ""}
-                      onChange={(v) => setField("datetime", v)}
-                      placeholder="YYYY-MM-DD HH:MM"
+                      value={form.eventDate || ""}
+                      onChange={(v) => setField("eventDate", v)}
+                      placeholder="YYYY-MM-DD"
+                    />
+                  )}
+                </Field>
+                <Field label="Event Time">
+                  {modal === "edit" && detailHasParticipants ? (
+                    <LockedValue value={form.eventTime} />
+                  ) : (
+                    <TextInput
+                      value={form.eventTime || ""}
+                      onChange={(v) => setField("eventTime", v)}
+                      placeholder="HH:MM"
+                    />
+                  )}
+                </Field>
+                <Field label="City">
+                  {modal === "edit" && detailHasParticipants ? (
+                    <LockedValue value={form.city} />
+                  ) : (
+                    <TextInput
+                      value={form.city || ""}
+                      onChange={(v) => setField("city", v)}
+                    />
+                  )}
+                </Field>
+                <Field label="Township">
+                  {modal === "edit" && detailHasParticipants ? (
+                    <LockedValue value={form.township} />
+                  ) : (
+                    <TextInput
+                      value={form.township || ""}
+                      onChange={(v) => setField("township", v)}
+                    />
+                  )}
+                </Field>
+                <Field label="Host Name">
+                  {modal === "edit" && detailHasParticipants ? (
+                    <LockedValue value={form.hostName} />
+                  ) : (
+                    <TextInput
+                      value={form.hostName || ""}
+                      onChange={(v) => setField("hostName", v)}
                     />
                   )}
                 </Field>
@@ -6569,20 +8249,30 @@ export default function StudentManagementPortal() {
           )}
           <Row>
             <Spacer />
-            <Button variant="ghost" onClick={closeModal}>
-              {modal === "view" ? "Close" : "Cancel"}
-            </Button>
+            {modal !== "view" ? (
+              <Button variant="ghost" onClick={closeModal}>
+                Cancel
+              </Button>
+            ) : null}
             {modal !== "view" ? (
               <BrandButton
                 onClick={() => {
                   const existing = events.find((e) => e.id === editId);
                   const row: EventRec = {
                     id: modal === "edit" ? editId : uid("e"),
+                    eventId:
+                      form.eventId ||
+                      existing?.eventId ||
+                      nextEventId(events),
                     title: form.title || "New Event",
-                    region: form.region || "",
-                    status: form.status || "Active",
+                    status:
+                      existing?.status === "Cancelled" ? "Cancelled" : "Active",
                     venue: form.venue || "",
-                    datetime: form.datetime || "",
+                    eventDate: form.eventDate || "",
+                    eventTime: form.eventTime || "",
+                    city: form.city || "",
+                    township: form.township || "",
+                    hostName: form.hostName || "",
                     regStart: form.regStart || "",
                     regEnd: form.regEnd || "",
                     max: form.max || "0",
@@ -6628,11 +8318,25 @@ export default function StudentManagementPortal() {
           {modal === "view" ? (
             <ReadGrid
               pairs={[
+                ["Volunteer ID", form.volunteerId],
                 ["Volunteer Title", form.title],
-                ["Region", form.region],
-                ["Status", form.status],
+                [
+                  "Status",
+                  displayActivityStatus({
+                    status: form.status || "",
+                    eventDate: form.eventDate || "",
+                    eventTime: form.eventTime || "",
+                    regEnd: form.regEnd || "",
+                    max: form.max || "0",
+                    registered: parseCount(form.registered || "0"),
+                  }),
+                ],
                 ["Venue", form.venue],
-                ["Volunteer Date and Time", form.datetime],
+                ["Event Date", form.eventDate],
+                ["Event Time", form.eventTime],
+                ["City", form.city],
+                ["Township", form.township],
+                ["Host Name", form.hostName],
                 ["Registration Start Date", form.regStart],
                 ["Registration End Date", form.regEnd],
                 ["Duration", form.duration],
@@ -6651,6 +8355,9 @@ export default function StudentManagementPortal() {
                 </Text>
               ) : null}
               <Grid columns={2} gap={12}>
+                <Field label="Volunteer ID">
+                  <LockedValue value={form.volunteerId || nextVolunteerId(volunteers)} />
+                </Field>
                 <Field label="Volunteer Title">
                   {modal === "edit" && detailHasParticipants ? (
                     <LockedValue value={form.title} />
@@ -6661,26 +8368,16 @@ export default function StudentManagementPortal() {
                     />
                   )}
                 </Field>
-                <Field label="Region">
-                  {modal === "edit" && detailHasParticipants ? (
-                    <LockedValue value={form.region} />
-                  ) : (
-                    <Select
-                      value={form.region || ""}
-                      onChange={(v) => setField("region", v)}
-                      options={regionSelect}
-                    />
-                  )}
-                </Field>
                 <Field label="Status">
-                  <Select
-                    value={form.status || "Active"}
-                    onChange={(v) => setField("status", v)}
-                    options={
-                      form.status === "Cancelled"
-                        ? ACTIVITY_STATUS_OPTS
-                        : STATUS_OPTS
-                    }
+                  <LockedValue
+                    value={displayActivityStatus({
+                      status: form.status || "",
+                      eventDate: form.eventDate || "",
+                      eventTime: form.eventTime || "",
+                      regEnd: form.regEnd || "",
+                      max: form.max || "0",
+                      registered: parseCount(form.registered || "0"),
+                    })}
                   />
                 </Field>
                 <Field label="Venue">
@@ -6693,13 +8390,55 @@ export default function StudentManagementPortal() {
                     />
                   )}
                 </Field>
-                <Field label="Volunteer Date and Time">
+                <Field label="Event Date">
                   {modal === "edit" && detailHasParticipants ? (
-                    <LockedValue value={form.datetime} />
+                    <LockedValue value={form.eventDate} />
                   ) : (
                     <TextInput
-                      value={form.datetime || ""}
-                      onChange={(v) => setField("datetime", v)}
+                      value={form.eventDate || ""}
+                      onChange={(v) => setField("eventDate", v)}
+                      placeholder="YYYY-MM-DD"
+                    />
+                  )}
+                </Field>
+                <Field label="Event Time">
+                  {modal === "edit" && detailHasParticipants ? (
+                    <LockedValue value={form.eventTime} />
+                  ) : (
+                    <TextInput
+                      value={form.eventTime || ""}
+                      onChange={(v) => setField("eventTime", v)}
+                      placeholder="HH:MM"
+                    />
+                  )}
+                </Field>
+                <Field label="City">
+                  {modal === "edit" && detailHasParticipants ? (
+                    <LockedValue value={form.city} />
+                  ) : (
+                    <TextInput
+                      value={form.city || ""}
+                      onChange={(v) => setField("city", v)}
+                    />
+                  )}
+                </Field>
+                <Field label="Township">
+                  {modal === "edit" && detailHasParticipants ? (
+                    <LockedValue value={form.township} />
+                  ) : (
+                    <TextInput
+                      value={form.township || ""}
+                      onChange={(v) => setField("township", v)}
+                    />
+                  )}
+                </Field>
+                <Field label="Host Name">
+                  {modal === "edit" && detailHasParticipants ? (
+                    <LockedValue value={form.hostName} />
+                  ) : (
+                    <TextInput
+                      value={form.hostName || ""}
+                      onChange={(v) => setField("hostName", v)}
                     />
                   )}
                 </Field>
@@ -6763,20 +8502,30 @@ export default function StudentManagementPortal() {
           )}
           <Row>
             <Spacer />
-            <Button variant="ghost" onClick={closeModal}>
-              {modal === "view" ? "Close" : "Cancel"}
-            </Button>
+            {modal !== "view" ? (
+              <Button variant="ghost" onClick={closeModal}>
+                Cancel
+              </Button>
+            ) : null}
             {modal !== "view" ? (
               <BrandButton
                 onClick={() => {
                   const existing = volunteers.find((v) => v.id === editId);
                   const row: Volunteer = {
                     id: modal === "edit" ? editId : uid("v"),
+                    volunteerId:
+                      form.volunteerId ||
+                      existing?.volunteerId ||
+                      nextVolunteerId(volunteers),
                     title: form.title || "New Volunteer Drive",
-                    region: form.region || "",
-                    status: form.status || "Active",
+                    status:
+                      existing?.status === "Cancelled" ? "Cancelled" : "Active",
                     venue: form.venue || "",
-                    datetime: form.datetime || "",
+                    eventDate: form.eventDate || "",
+                    eventTime: form.eventTime || "",
+                    city: form.city || "",
+                    township: form.township || "",
+                    hostName: form.hostName || "",
                     regStart: form.regStart || "",
                     regEnd: form.regEnd || "",
                     duration: form.duration || "",
@@ -6819,10 +8568,20 @@ export default function StudentManagementPortal() {
             <Stack gap={12}>
               <ReadGrid
                 pairs={[
+                  ["Job ID", form.jobId],
                   ["Job Title", form.title],
+                  [
+                    "Status",
+                    displayJobStatus({
+                      vacancies: form.vacancies || "0",
+                      deadline: form.deadline || "",
+                      applicants: parseCount(form.applicants || "0"),
+                    }),
+                  ],
                   ["Job Type", form.type],
                   ["Company Name", form.company],
-                  ["Location", form.location],
+                  ["City", form.city],
+                  ["Township", form.township],
                   ["Number of Vacancies", form.vacancies],
                   ["Application Start Date", form.start],
                   ["Application Deadline", form.deadline],
@@ -6840,6 +8599,9 @@ export default function StudentManagementPortal() {
           ) : (
             <>
               <Grid columns={2} gap={12}>
+                <Field label="Job ID">
+                  <LockedValue value={form.jobId || nextJobId(jobs)} />
+                </Field>
                 <Field label="Job Title">
                   <TextInput
                     value={form.title || ""}
@@ -6859,10 +8621,16 @@ export default function StudentManagementPortal() {
                     onChange={(v) => setField("company", v)}
                   />
                 </Field>
-                <Field label="Location">
+                <Field label="City">
                   <TextInput
-                    value={form.location || ""}
-                    onChange={(v) => setField("location", v)}
+                    value={form.city || ""}
+                    onChange={(v) => setField("city", v)}
+                  />
+                </Field>
+                <Field label="Township">
+                  <TextInput
+                    value={form.township || ""}
+                    onChange={(v) => setField("township", v)}
                   />
                 </Field>
                 <Field label="Number of Vacancies">
@@ -6925,19 +8693,24 @@ export default function StudentManagementPortal() {
           )}
           <Row>
             <Spacer />
-            <Button variant="ghost" onClick={closeModal}>
-              {modal === "view" ? "Close" : "Cancel"}
-            </Button>
+            {modal !== "view" ? (
+              <Button variant="ghost" onClick={closeModal}>
+                Cancel
+              </Button>
+            ) : null}
             {modal !== "view" ? (
               <BrandButton
                 onClick={() => {
                   const existing = jobs.find((j) => j.id === editId);
                   const row: Job = {
                     id: modal === "edit" ? editId : uid("j"),
+                    jobId:
+                      form.jobId || existing?.jobId || nextJobId(jobs),
                     title: form.title || "New Job",
                     type: form.type || "Internship",
                     company: form.company || "KBZPay",
-                    location: form.location || "",
+                    city: form.city || "",
+                    township: form.township || "",
                     vacancies: form.vacancies || "1",
                     start: form.start || "",
                     deadline: form.deadline || "",
@@ -7657,6 +9430,7 @@ export default function StudentManagementPortal() {
                 ["Student Name", partViewRow.name],
                 ["College Name", partViewRow.college],
                 ["SA Batch", partViewRow.batch],
+                ["Current Address", partViewRow.currentAddress?.trim() || "—"],
                 ["Phone", partViewRow.phone],
                 ["Email", partViewRow.email],
                 ["Applied", partViewRow.appliedAt],
@@ -7673,9 +9447,6 @@ export default function StudentManagementPortal() {
           </Stack>
           <Row>
             <Spacer />
-            <Button variant="ghost" onClick={() => setPartViewId("")}>
-              Close
-            </Button>
             {partViewRow.status === "Pending" ? (
               <>
                 <MiniAction
@@ -7765,8 +9536,8 @@ export default function StudentManagementPortal() {
         >
           <Stack gap={12}>
             <Text>
-              Cancel this activity anytime. Pending and approved participants
-              will be moved to Cancelled.
+              Cancel this activity before the event date. Pending and approved
+              participants will be moved to Cancelled.
             </Text>
             <Field label="Message to participants">
               <TextArea
