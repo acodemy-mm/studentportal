@@ -559,6 +559,7 @@ type Job = {
   pdf: string;
   cover: string;
   applicants: number;
+  status: string;
 };
 
 type KpiRow = {
@@ -1229,14 +1230,15 @@ const SEED_JOBS: Job[] = [
     city: "Yangon",
     township: "Kamayut",
     vacancies: "8",
-    start: "2026-09-01",
-    deadline: "2026-08-25",
+    start: "2026-08-01",
+    deadline: "2026-09-15",
     summary: "Support campus campaigns, booth setup, and ambassador content.",
     responsibilities: "Run weekly campus activations; collect merchant leads; report KPIs.",
     requirements: "Current SA in good standing; strong communication; own smartphone.",
     pdf: "JD_Campus_Marketing_Intern.pdf",
     cover: "job-intern.jpg",
-    applicants: 42,
+    applicants: 5,
+    status: "Active",
   },
   {
     id: "j2",
@@ -1255,6 +1257,7 @@ const SEED_JOBS: Job[] = [
     pdf: "JD_SA_Coordinator.pdf",
     cover: "job-coordinator.jpg",
     applicants: 19,
+    status: "Active",
   },
   {
     id: "j3",
@@ -1265,14 +1268,15 @@ const SEED_JOBS: Job[] = [
     city: "Mandalay",
     township: "Chanayethazan",
     vacancies: "4",
-    start: "2026-09-10",
-    deadline: "2026-08-30",
+    start: "2026-08-10",
+    deadline: "2026-09-30",
     summary: "Produce short-form campus stories for KBZPay SA channels.",
     responsibilities: "Shoot and edit weekly reels; moderate comments; track reach.",
     requirements: "Portfolio of campus content; Batch 5 or 6 ambassador preferred.",
     pdf: "JD_Content_Associate.pdf",
     cover: "job-content.jpg",
-    applicants: 27,
+    applicants: 2,
+    status: "Active",
   },
 ];
 
@@ -1911,7 +1915,9 @@ function displayJobStatus(job: {
   vacancies: string;
   deadline: string;
   applicants: number;
+  status?: string;
 }) {
+  if (job.status === "Closed") return "Closed";
   const cap = parseCount(job.vacancies);
   if (job.deadline && job.deadline < DEMO_TODAY) return "Expired";
   if (cap > 0 && job.applicants >= cap) return "Closed";
@@ -3114,7 +3120,13 @@ function ModalShell({
   );
 }
 
-function CertFileTable({ files }: { files: CertFile[] }) {
+function CertFileTable({
+  files,
+  onReplace,
+}: {
+  files: CertFile[];
+  onReplace?: (file: CertFile) => void;
+}) {
   return (
     <div className="sa-plain-table">
       <Table
@@ -3127,6 +3139,7 @@ function CertFileTable({ files }: { files: CertFile[] }) {
           "College Name",
           "SA Batch",
           "Note",
+          ...(onReplace ? ["Action"] : []),
         ]}
         rows={files.map((row) => [
           row.fileName,
@@ -3135,6 +3148,37 @@ function CertFileTable({ files }: { files: CertFile[] }) {
           row.college,
           row.batch,
           row.error || "—",
+          ...(onReplace
+            ? [
+                row.ok ? (
+                  <div
+                    key={`${row.id}-replace`}
+                    className="sa-chip-view"
+                    role="button"
+                    onClick={() => onReplace(row)}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      padding: "6px 10px",
+                      borderRadius: 6,
+                      background: SOFT,
+                      color: BRAND,
+                      fontFamily: FONT,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    <LineIcon name="upload" color={BRAND} size={14} />
+                    Replace
+                  </div>
+                ) : (
+                  "—"
+                ),
+              ]
+            : []),
         ])}
         rowTone={files.map((row) => (row.ok ? "success" : "danger"))}
       />
@@ -4714,7 +4758,7 @@ export default function StudentManagementPortal() {
     "volunteers3",
     SEED_VOLUNTEERS,
   );
-  const [jobs, setJobs] = useCanvasState<Job[]>("jobs2", SEED_JOBS);
+  const [jobs, setJobs] = useCanvasState<Job[]>("jobs4", SEED_JOBS);
   const [joins, setJoins] = useCanvasState<JoinRecord[]>("joins3", SEED_JOINS);
   const [candidates] = useCanvasState<JobCandidate[]>(
     "candidates3",
@@ -5541,6 +5585,7 @@ export default function StudentManagementPortal() {
           vacancies: form.vacancies || "0",
           deadline: form.deadline || "",
           applicants: parseCount(form.applicants || "0"),
+          status: form.status || "",
         })],
         ["Job Type", form.type],
         ["Company Name", form.company],
@@ -6188,17 +6233,7 @@ export default function StudentManagementPortal() {
                 </div>
               ) : null}
               <Row gap={8}>
-                {page === "certificates" ? (
-                  <BrandButton
-                    onClick={() => {
-                      setCertZipFiles(detailCert?.files || []);
-                      setForm({ ...form, replaceFile: "" });
-                      setModal("edit");
-                    }}
-                  >
-                    Replace
-                  </BrandButton>
-                ) : page === "activity" ? null : (
+                {page === "certificates" || page === "activity" ? null : (
                   <BrandButton
                     onClick={() => {
                       if (page === "students" && detailId) {
@@ -6217,6 +6252,29 @@ export default function StudentManagementPortal() {
                     Edit
                   </BrandButton>
                 )}
+                {page === "jobs" &&
+                displayJobStatus({
+                  vacancies: form.vacancies || "0",
+                  deadline: form.deadline || "",
+                  applicants: parseCount(form.applicants || "0"),
+                  status: form.status || "",
+                }) !== "Closed" ? (
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      if (!detailId) return;
+                      setJobs(
+                        jobs.map((j) =>
+                          j.id === detailId ? { ...j, status: "Closed" } : j,
+                        ),
+                      );
+                      setForm({ ...form, status: "Closed" });
+                      flash("vacancy closed");
+                    }}
+                  >
+                    Close
+                  </Button>
+                ) : null}
                 {page === "banners" || master ? (
                   <MiniAction
                     kind="reject"
@@ -6624,7 +6682,20 @@ export default function StudentManagementPortal() {
                     Files in this ZIP matched against the {detailCert.batch} student
                     list. Error rows are not in that batch.
                   </Text>
-                  <CertFileTable files={detailCert.files || []} />
+                  <CertFileTable
+                    files={detailCert.files || []}
+                    onReplace={(file) => {
+                      setForm({
+                        ...form,
+                        replaceFileId: file.id,
+                        replaceStudentId: file.studentId,
+                        replaceStudentName: file.name,
+                        replaceCurrentFile: file.fileName,
+                        replaceFile: "",
+                      });
+                      setModal("edit");
+                    }}
+                  />
                   <TablePager total={(detailCert.files || []).length} />
                 </Stack>
               ) : null}
@@ -7371,6 +7442,7 @@ export default function StudentManagementPortal() {
                           requirements: "",
                           pdf: "",
                           cover: "",
+                          status: "Active",
                           sendSms: "no",
                         })
                       }
@@ -9203,6 +9275,7 @@ export default function StudentManagementPortal() {
                       vacancies: form.vacancies || "0",
                       deadline: form.deadline || "",
                       applicants: parseCount(form.applicants || "0"),
+                      status: form.status || "",
                     }),
                   ],
                   ["Job Type", form.type],
@@ -9347,6 +9420,7 @@ export default function StudentManagementPortal() {
                     pdf: form.pdf || "",
                     cover: form.cover || "",
                     applicants: existing?.applicants || 0,
+                    status: form.status || existing?.status || "Active",
                   };
                   setJobs(
                     modal === "edit"
@@ -9852,94 +9926,56 @@ export default function StudentManagementPortal() {
       ) : null}
 
       {modal === "edit" && page === "certificates" ? (
-        <ModalShell wide title="Replace certificate ZIP" onClose={closeModal}>
-          <Text tone="secondary">
-            Upload a new ZIP to replace the certificate package for{" "}
-            {form.batch || "this batch"} · {form.category || "this category"}.
-          </Text>
-          <Grid columns={2} gap={12}>
-            <Field label="SA Batch">
-              <LockedValue value={form.batch} />
-            </Field>
-            <Field label="Certificate Category">
-              <LockedValue value={form.category} />
-            </Field>
-            <Field label="Current ZIP">
-              <LockedValue value={form.file} />
-            </Field>
-            <FilePick
-              label="New ZIP file"
-              accept=".zip"
-              value={form.replaceFile || ""}
-              onChange={(n) => {
-                const batch = form.batch || "Batch 6";
-                const preview = simulateZip(n, batch, students);
-                setCertZipFiles(preview);
-                setForm({
-                  ...form,
-                  replaceFile: n,
-                  count: `${preview.filter((f) => f.ok).length} certificates`,
-                });
-              }}
+        <ModalShell title="Replace certificate" onClose={closeModal}>
+          <Stack gap={12}>
+            <Text tone="secondary">
+              Upload a new certificate file for this student. The previous file
+              will be replaced.
+            </Text>
+            <ReadGrid
+              pairs={[
+                ["Student ID", form.replaceStudentId],
+                ["Student Name", form.replaceStudentName],
+                ["Current file", form.replaceCurrentFile],
+              ]}
             />
-          </Grid>
-          {certZipFiles.length ? (
-            <Stack gap={8}>
-              <H2 style={mergeStyle({ color: INK, fontFamily: FONT })}>
-                ZIP file list
-              </H2>
-              <Text size="small" style={{ color: MUTED, fontFamily: FONT }}>
-                {certZipFiles.filter((f) => f.ok).length} matched ·{" "}
-                {certZipFiles.filter((f) => !f.ok).length} error
-                {certZipFiles.filter((f) => !f.ok).length === 1 ? "" : "s"}
-              </Text>
-              <CertFileTable files={certZipFiles} />
-            </Stack>
-          ) : null}
+            <FilePick
+              label="New certificate file"
+              accept=".pdf"
+              value={form.replaceFile || ""}
+              onChange={(n) => setField("replaceFile", n)}
+            />
+          </Stack>
           <Row>
             <Spacer />
             <Button variant="ghost" onClick={closeModal}>
               Cancel
             </Button>
             <BrandButton
-              disabled={!form.replaceFile}
+              disabled={!form.replaceFile || !form.replaceFileId}
               onClick={() => {
-                if (!detailId || !form.replaceFile) return;
-                const batch = form.batch || "Batch 6";
-                const files =
-                  certZipFiles.length > 0
-                    ? certZipFiles
-                    : simulateZip(form.replaceFile, batch, students);
-                const matched = files.filter((f) => f.ok).length;
-                const errors = files.filter((f) => !f.ok).length;
-                const nextCount =
-                  form.count || `${matched} certificates`;
+                if (!detailId || !form.replaceFile || !form.replaceFileId) return;
                 setCerts(
                   certs.map((c) =>
                     c.id === detailId
                       ? {
                           ...c,
-                          file: form.replaceFile,
-                          count: nextCount,
-                          uploaded: "2026-08-14",
-                          files,
+                          files: (c.files || []).map((f) =>
+                            f.id === form.replaceFileId
+                              ? {
+                                  ...f,
+                                  fileName: form.replaceFile,
+                                  ok: true,
+                                  error: "",
+                                }
+                              : f,
+                          ),
                         }
                       : c,
                   ),
                 );
-                setForm({
-                  ...form,
-                  file: form.replaceFile,
-                  count: nextCount,
-                  uploaded: "2026-08-14",
-                  replaceFile: "",
-                });
                 closeModal();
-                flash(
-                  errors
-                    ? `certificate replaced — ${errors} file${errors === 1 ? "" : "s"} not in the batch list`
-                    : "certificate replaced",
-                );
+                flash("certificate replaced");
               }}
             >
               Replace
