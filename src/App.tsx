@@ -85,6 +85,7 @@ const DASH_TITLES = [
   "Partner School Dashboard",
   "Activities Dashboard",
   "Hall of Fame Dashboard",
+  "App Usage Dashboard",
 ];
 
 const ANNOUNCE_TITLES = [
@@ -377,6 +378,14 @@ function LineIcon({
       </svg>
     );
   }
+  if (name === "phone") {
+    return (
+      <svg {...common}>
+        <rect x="7" y="2" width="10" height="20" rx="2" />
+        <path d="M10 18h4" />
+      </svg>
+    );
+  }
   return (
     <svg {...common}>
       <circle cx="12" cy="12" r="8" />
@@ -400,10 +409,18 @@ type PageId =
   | "dash-school"
   | "dash-activity"
   | "dash-fame"
+  | "dash-usage"
   | "sa-batch"
   | "certificate-category";
 
-type ModalMode = "closed" | "add" | "edit" | "view" | "import" | "delete";
+type ModalMode =
+  | "closed"
+  | "add"
+  | "edit"
+  | "view"
+  | "import"
+  | "update-import"
+  | "delete";
 
 type Employment = {
   id: string;
@@ -412,6 +429,7 @@ type Employment = {
   department: string;
   joinDate: string;
   endDate: string;
+  current: boolean;
 };
 
 type Student = {
@@ -654,6 +672,7 @@ type JobCandidate = {
   batch: string;
   city: string;
   currentAddress: string;
+  cv: string;
   appliedAt: string;
 };
 
@@ -695,6 +714,7 @@ const SEED_STUDENTS: Student[] = [
         department: "Digital Products",
         joinDate: "2025-03-01",
         endDate: "2026-02-28",
+        current: false,
       },
       {
         id: "emp-s1-2",
@@ -703,6 +723,7 @@ const SEED_STUDENTS: Student[] = [
         department: "Digital Products",
         joinDate: "2026-03-01",
         endDate: "",
+        current: true,
       },
     ],
     createdAt: "2026-01-12 09:14",
@@ -740,6 +761,7 @@ const SEED_STUDENTS: Student[] = [
         department: "Engineering",
         joinDate: "2025-06-01",
         endDate: "",
+        current: true,
       },
     ],
     createdAt: "2026-01-12 09:18",
@@ -777,6 +799,7 @@ const SEED_STUDENTS: Student[] = [
         department: "Partnerships",
         joinDate: "2025-06-01",
         endDate: "2026-05-31",
+        current: false,
       },
     ],
     createdAt: "2025-11-03 10:02",
@@ -814,6 +837,7 @@ const SEED_STUDENTS: Student[] = [
         department: "Operations",
         joinDate: "2026-02-08",
         endDate: "2026-12-31",
+        current: false,
       },
     ],
     createdAt: "2026-02-08 13:45",
@@ -851,6 +875,7 @@ const SEED_STUDENTS: Student[] = [
         department: "Digital Products",
         joinDate: "2025-11-03",
         endDate: "2026-11-03",
+        current: false,
       },
       {
         id: "emp-s5-2",
@@ -859,6 +884,7 @@ const SEED_STUDENTS: Student[] = [
         department: "Marketing",
         joinDate: "2026-01-20",
         endDate: "",
+        current: true,
       },
     ],
     createdAt: "2025-11-03 10:08",
@@ -896,6 +922,7 @@ const SEED_STUDENTS: Student[] = [
         department: "Marketing",
         joinDate: "2026-01-20",
         endDate: "2026-07-20",
+        current: false,
       },
     ],
     createdAt: "2026-01-20 11:55",
@@ -1272,6 +1299,11 @@ function asJoin(
   };
 }
 
+function candidateCvName(student: Student) {
+  const slug = student.name.replace(/\s+/g, "_");
+  return `CV_${student.studentId}_${slug}.pdf`;
+}
+
 function asCandidate(
   id: string,
   jobId: string,
@@ -1289,6 +1321,7 @@ function asCandidate(
     batch: student.batch,
     city: student.city,
     currentAddress: student.currentAddress,
+    cv: candidateCvName(student),
     appliedAt,
   };
 }
@@ -1782,6 +1815,7 @@ const DASH_NAV: { id: PageId; label: string; icon: string }[] = [
   { id: "dash-school", label: "Partner School Dashboard", icon: "school" },
   { id: "dash-activity", label: "Activities Dashboard", icon: "calendar" },
   { id: "dash-fame", label: "Hall of Fame Dashboard", icon: "award" },
+  { id: "dash-usage", label: "App Usage Dashboard", icon: "phone" },
 ];
 
 const PROGRAM_NAV: { id: PageId; label: string; icon: string }[] = [
@@ -1795,12 +1829,16 @@ const ANNOUNCE_NAV: { id: PageId; label: string; icon: string }[] = [
   { id: "jobs", label: "Job Management", icon: "briefcase" },
 ];
 
+const SHOW_ACTIVITY_LOG = false;
+
 const PROGRAM_NAV_AFTER: { id: PageId; label: string; icon: string }[] = [
   { id: "kpi", label: "KPI Management", icon: "chart" },
   { id: "fame", label: "Hall of Fame", icon: "award" },
   { id: "certificates", label: "Certificate Management", icon: "file" },
   { id: "banners", label: "Banner Management", icon: "image" },
-  { id: "activity", label: "Activity Log", icon: "log" },
+  ...(SHOW_ACTIVITY_LOG
+    ? [{ id: "activity" as PageId, label: "Activity Log", icon: "log" }]
+    : []),
 ];
 
 const MASTER_NAV: { id: PageId; label: string; icon: string }[] = [
@@ -2054,8 +2092,8 @@ function empEndLabel(endDate: string) {
   return endDate;
 }
 
-function employmentRecordStatus(endDate: string) {
-  if (!endDate || endDate > todayIso()) return "Present";
+function employmentRecordStatus(endDate: string, current?: boolean) {
+  if (current || !endDate || endDate > todayIso()) return "Present";
   return "Completed";
 }
 
@@ -2065,10 +2103,18 @@ function employmentTypeLabel(type: string) {
   return type || "—";
 }
 
-function employmentEndDisplay(endDate: string) {
-  if (!endDate) return "—";
-  if (endDate > todayIso()) return endDate;
+function employmentEndDisplay(endDate: string, current?: boolean) {
+  if (current || !endDate) return "—";
   return endDate;
+}
+
+function normalizeEmployment(emp: Employment): Employment {
+  const current = Boolean(emp.current) || !emp.endDate;
+  return {
+    ...emp,
+    current,
+    endDate: current ? "" : emp.endDate || "",
+  };
 }
 
 function fameEndLabel(endDate: string) {
@@ -2491,6 +2537,172 @@ function importStudentRows(
       avatar: avatarDataUri(name, BRAND),
       employment: [],
       ...stampAudit({}, false),
+    });
+  }
+
+  return {
+    total: rows.length - 1,
+    success: accepted.length,
+    skipped,
+    fail,
+    invalidRows,
+    accepted,
+  };
+}
+
+function updateStudentRows(
+  text: string,
+  existingStudents: Student[],
+): StudentImportResult {
+  const rows = parseCsvRows(text);
+  if (rows.length < 2) {
+    return {
+      total: 0,
+      success: 0,
+      skipped: 0,
+      fail: 1,
+      invalidRows: [
+        {
+          row: 1,
+          studentId: "—",
+          reason: "File is empty or has no data rows.",
+        },
+      ],
+      accepted: [],
+    };
+  }
+
+  const columnMap = studentImportColumnMap(rows[0]);
+  const missingColumns = STUDENT_IMPORT_REQUIRED.filter(
+    (column) => columnMap[column] === undefined,
+  );
+  if (missingColumns.length > 0) {
+    return {
+      total: 0,
+      success: 0,
+      skipped: 0,
+      fail: 1,
+      invalidRows: [
+        {
+          row: 1,
+          studentId: "—",
+          reason: `Missing required columns: ${missingColumns.join(", ")}.`,
+        },
+      ],
+      accepted: [],
+    };
+  }
+
+  const byId = new Map(
+    existingStudents.map((student) => [
+      student.studentId.trim().toLowerCase(),
+      student,
+    ]),
+  );
+  const seenIds = new Set<string>();
+  const accepted: Student[] = [];
+  const invalidRows: StudentImportInvalidRow[] = [];
+  let skipped = 0;
+  let fail = 0;
+
+  for (let i = 1; i < rows.length; i += 1) {
+    const cells = rows[i];
+    const rowNumber = i + 1;
+    const studentId = importCellValue(cells, columnMap, "SA ID");
+    const name = importCellValue(cells, columnMap, "Student Name");
+    const college = importCellValue(cells, columnMap, "College Name");
+    const region = importCellValue(cells, columnMap, "Training Region");
+    const township = importCellValue(cells, columnMap, "Township");
+    const city = importCellValue(cells, columnMap, "City");
+    const batch = importCellValue(cells, columnMap, "SA Batch");
+    const gender = importCellValue(cells, columnMap, "Gender");
+    const age = importCellValue(cells, columnMap, "Age");
+    const dob = importCellValue(cells, columnMap, "Date of Birth");
+    const payPhone = importCellValue(cells, columnMap, "Pay Phone Number");
+    const contactPhone = importCellValue(
+      cells,
+      columnMap,
+      "Contact Phone Number",
+    );
+    const email = importCellValue(cells, columnMap, "Email");
+    const education = importCellValue(cells, columnMap, "Education");
+    const major = importCellValue(cells, columnMap, "Major");
+    const graduation = importCellValue(
+      cells,
+      columnMap,
+      "Expected Graduation Date",
+    );
+    const currentAddress = importCellValue(cells, columnMap, "Current Address");
+    const permanentAddress = importCellValue(
+      cells,
+      columnMap,
+      "Permanent Address",
+    );
+    const status = importCellValue(cells, columnMap, "Status");
+
+    const emptyRequired = STUDENT_IMPORT_REQUIRED.filter(
+      (column) => importCellValue(cells, columnMap, column) === "",
+    );
+    if (emptyRequired.length > 0) {
+      fail += 1;
+      invalidRows.push({
+        row: rowNumber,
+        studentId: studentId || "—",
+        reason: `Required columns empty: ${emptyRequired.join(", ")}.`,
+      });
+      continue;
+    }
+
+    const normalizedId = studentId.toLowerCase();
+    if (seenIds.has(normalizedId)) {
+      skipped += 1;
+      continue;
+    }
+    const existing = byId.get(normalizedId);
+    if (!existing) {
+      fail += 1;
+      invalidRows.push({
+        row: rowNumber,
+        studentId,
+        reason: "SA ID not found. Only existing students can be updated.",
+      });
+      continue;
+    }
+
+    seenIds.add(normalizedId);
+    accepted.push({
+      ...existing,
+      studentId,
+      name,
+      college,
+      region,
+      township,
+      city,
+      currentAddress,
+      permanentAddress,
+      batch,
+      gender,
+      age,
+      dob,
+      payPhone,
+      contactPhone,
+      email,
+      education,
+      major,
+      graduation,
+      status,
+      avatar: isCustomStudentPhoto(existing.avatar)
+        ? existing.avatar
+        : avatarDataUri(name, BRAND),
+      ...stampAudit(
+        {
+          createdAt: existing.createdAt,
+          createdBy: existing.createdBy,
+          updatedAt: existing.updatedAt,
+          updatedBy: existing.updatedBy,
+        },
+        true,
+      ),
     });
   }
 
@@ -2964,12 +3176,23 @@ function AddSplitButton({
   onToggle,
   onSingle,
   onUpload,
+  onEditUpload,
+  label,
+  singleLabel,
+  uploadLabel,
+  editUploadLabel,
 }: {
   open: boolean;
   onToggle: () => void;
-  onSingle: () => void;
+  onSingle?: () => void;
   onUpload: () => void;
+  onEditUpload?: () => void;
+  label?: string;
+  singleLabel?: string;
+  uploadLabel?: string;
+  editUploadLabel?: string;
 }) {
+  const buttonLabel = label || "Add";
   return (
     <div style={{ position: "relative" }}>
       <div
@@ -2993,7 +3216,7 @@ function AddSplitButton({
         }}
       >
         <LineIcon name="plus" color={WHITE} size={15} />
-        Add
+        {buttonLabel}
         <LineIcon name="chevron" color={WHITE} size={14} />
       </div>
       {open ? (
@@ -3012,26 +3235,28 @@ function AddSplitButton({
             boxShadow: "0 8px 24px rgba(27, 36, 48, 0.12)",
           }}
         >
-          <div
-            className="sa-drop-item"
-            role="button"
-            onClick={onSingle}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "8px 10px",
-              borderRadius: 6,
-              fontFamily: FONT,
-              fontSize: 13,
-              fontWeight: 600,
-              color: INK,
-              cursor: "pointer",
-            }}
-          >
-            <LineIcon name="plus" color={BRAND} size={15} />
-            Single add
-          </div>
+          {onSingle ? (
+            <div
+              className="sa-drop-item"
+              role="button"
+              onClick={onSingle}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "8px 10px",
+                borderRadius: 6,
+                fontFamily: FONT,
+                fontSize: 13,
+                fontWeight: 600,
+                color: INK,
+                cursor: "pointer",
+              }}
+            >
+              <LineIcon name="plus" color={BRAND} size={15} />
+              {singleLabel || "Single add"}
+            </div>
+          ) : null}
           <div
             className="sa-drop-item"
             role="button"
@@ -3050,8 +3275,30 @@ function AddSplitButton({
             }}
           >
             <LineIcon name="upload" color={BRAND} size={15} />
-            Upload file
+            {uploadLabel || "Upload file"}
           </div>
+          {onEditUpload ? (
+            <div
+              className="sa-drop-item"
+              role="button"
+              onClick={onEditUpload}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "8px 10px",
+                borderRadius: 6,
+                fontFamily: FONT,
+                fontSize: 13,
+                fontWeight: 600,
+                color: INK,
+                cursor: "pointer",
+              }}
+            >
+              <LineIcon name="upload" color={BRAND} size={15} />
+              {editUploadLabel || "Edit upload"}
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>
@@ -3572,54 +3819,175 @@ function DashboardView({
     );
   }
 
+  if (page === "dash-fame") {
+    return (
+      <Stack gap={16}>
+        <PageIntro
+          title="Hall of Fame Dashboard"
+          body="Award distribution by category, SA batch, and recognition year."
+        />
+        <Grid columns={3} gap={12}>
+          <DashStat label="Awards recorded" value={String(fame.length)} />
+          <DashStat label="Award categories" value={String(fameCat.labels.length)} />
+          <DashStat label="Batches recognized" value={String(fameBatch.labels.length)} />
+        </Grid>
+        <ChartPanel
+          title="Awards by category"
+          axes="Award category (x) · Award count (y)"
+          caption={caption}
+        >
+          <BarChart
+            categories={fameCat.labels}
+            series={[{ name: "Awards", data: fameCat.data }]}
+            height={240}
+          />
+        </ChartPanel>
+        <Grid columns={2} gap={12}>
+          <ChartPanel
+            title="Awards by SA batch"
+            axes="SA batch (slices) · Share of awards (%)"
+            caption={caption}
+          >
+            <PieChart
+              donut
+              data={fameBatch.labels.map((label, i) => ({
+                label,
+                value: fameBatch.data[i],
+              }))}
+            />
+          </ChartPanel>
+          <ChartPanel
+            title="Awards by recognition year"
+            axes="Year (x) · Award count (y)"
+            caption={caption}
+          >
+            <BarChart
+              categories={fameYear.labels}
+              series={[{ name: "Awards", data: fameYear.data }]}
+              height={220}
+            />
+          </ChartPanel>
+        </Grid>
+      </Stack>
+    );
+  }
+
+  const usageMonths = ["2026-03", "2026-04", "2026-05", "2026-06", "2026-07", "2026-08"];
+  const mauSeries = [42, 58, 71, 86, 104, 128];
+  const sessionSeries = [210, 286, 340, 412, 498, 612];
+  const avgSessionMin = [4.2, 4.6, 5.1, 5.4, 5.8, 6.1];
+  const featureUsage = [
+    { label: "Home / feed", value: 312 },
+    { label: "Events", value: 186 },
+    { label: "Volunteer", value: 142 },
+    { label: "Jobs", value: 98 },
+    { label: "KPI", value: 74 },
+    { label: "Hall of Fame", value: 61 },
+  ];
+  const platformMix = [
+    { label: "Android", value: 68 },
+    { label: "iOS", value: 32 },
+  ];
+  const usageByBatch = batchTally.labels.length
+    ? batchTally
+    : { labels: ["Batch 6", "Batch 5", "Batch 4"], data: [54, 41, 33] };
+  const retention = [
+    { label: "Day 1", value: 78 },
+    { label: "Day 7", value: 52 },
+    { label: "Day 30", value: 34 },
+  ];
+  const activeAppUsers = mauSeries[mauSeries.length - 1];
+  const totalSessions = sessionSeries[sessionSeries.length - 1];
+  const avgMinutes = avgSessionMin[avgSessionMin.length - 1];
+
   return (
     <Stack gap={16}>
       <PageIntro
-        title="Hall of Fame Dashboard"
-        body="Award distribution by category, SA batch, and recognition year."
+        title="App Usage Dashboard"
+        body="KBZPay Student Ambassador app engagement — monthly active users, sessions, feature usage, and platform mix."
       />
-      <Grid columns={3} gap={12}>
-        <DashStat label="Awards recorded" value={String(fame.length)} />
-        <DashStat label="Award categories" value={String(fameCat.labels.length)} />
-        <DashStat label="Batches recognized" value={String(fameBatch.labels.length)} />
+      <Grid columns={4} gap={12}>
+        <DashStat label="Monthly active users" value={String(activeAppUsers)} />
+        <DashStat label="Sessions (Aug)" value={String(totalSessions)} />
+        <DashStat label="Avg. session (min)" value={String(avgMinutes)} />
+        <DashStat
+          label="App adoption"
+          value={`${Math.min(100, Math.round((activeAppUsers / Math.max(students.length, 1)) * 100))}%`}
+        />
       </Grid>
       <ChartPanel
-        title="Awards by category"
-        axes="Award category (x) · Award count (y)"
-        caption={caption}
+        title="Monthly active users and sessions"
+        axes="Month (x) · Active users / sessions (y)"
+        caption={`${caption}. Demo app analytics for the SA mobile app.`}
       >
-        <BarChart
-          categories={fameCat.labels}
-          series={[{ name: "Awards", data: fameCat.data }]}
+        <LineChart
+          categories={usageMonths.map(ymLabel)}
+          series={[
+            { name: "Monthly active users", data: mauSeries },
+            { name: "Sessions", data: sessionSeries },
+          ]}
+          fill
           height={240}
         />
       </ChartPanel>
       <Grid columns={2} gap={12}>
         <ChartPanel
-          title="Awards by SA batch"
-          axes="SA batch (slices) · Share of awards (%)"
-          caption={caption}
+          title="Feature usage (screen opens)"
+          axes="Feature (y) · Opens in Aug 2026 (x)"
+          caption={`${caption}. Count of screen opens in the SA app.`}
         >
-          <PieChart
-            donut
-            data={fameBatch.labels.map((label, i) => ({
-              label,
-              value: fameBatch.data[i],
-            }))}
+          <BarChart
+            horizontal
+            categories={featureUsage.map((f) => f.label)}
+            series={[{ name: "Opens", data: featureUsage.map((f) => f.value) }]}
+            height={Math.max(220, featureUsage.length * 42)}
           />
         </ChartPanel>
         <ChartPanel
-          title="Awards by recognition year"
-          axes="Year (x) · Award count (y)"
+          title="Platform mix"
+          axes="Platform (slices) · Share of active users (%)"
           caption={caption}
         >
+          <PieChart donut data={platformMix} />
+        </ChartPanel>
+      </Grid>
+      <Grid columns={2} gap={12}>
+        <ChartPanel
+          title="Active users by SA batch"
+          axes="SA batch (x) · Active app users (y)"
+          caption={`${caption}. Active users attributed to each SA batch.`}
+        >
           <BarChart
-            categories={fameYear.labels}
-            series={[{ name: "Awards", data: fameYear.data }]}
+            categories={usageByBatch.labels}
+            series={[{ name: "Active users", data: usageByBatch.data }]}
+            height={220}
+          />
+        </ChartPanel>
+        <ChartPanel
+          title="Retention"
+          axes="Cohort window (x) · Retained users (%)"
+          caption={`${caption}. Share of Aug new installs returning on Day 1 / 7 / 30.`}
+        >
+          <BarChart
+            categories={retention.map((r) => r.label)}
+            series={[{ name: "Retention %", data: retention.map((r) => r.value) }]}
             height={220}
           />
         </ChartPanel>
       </Grid>
+      <ChartPanel
+        title="Average session length"
+        axes="Month (x) · Average minutes per session (y)"
+        caption={caption}
+      >
+        <LineChart
+          categories={usageMonths.map(ymLabel)}
+          series={[{ name: "Avg. minutes", data: avgSessionMin }]}
+          fill
+          height={200}
+          showValues
+        />
+      </ChartPanel>
     </Stack>
   );
 }
@@ -3669,10 +4037,12 @@ function DateField({
   label,
   value,
   onChange,
+  disabled,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  disabled?: boolean;
 }) {
   return (
     <Field label={label}>
@@ -3680,6 +4050,7 @@ function DateField({
         className="sa-date"
         type="date"
         value={value}
+        disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
         style={{
           width: "100%",
@@ -3689,8 +4060,9 @@ function DateField({
           border: `1px solid ${LINE}`,
           fontFamily: FONT,
           fontSize: 13,
-          background: WHITE,
-          color: INK,
+          background: disabled ? "#F3F4F6" : WHITE,
+          color: disabled ? MUTED : INK,
+          cursor: disabled ? "not-allowed" : "text",
         }}
       />
     </Field>
@@ -3983,6 +4355,42 @@ function ViewDetailsBtn({
   );
 }
 
+function CvAttachLink({ fileName }: { fileName: string; key?: string }) {
+  if (!fileName?.trim()) return "—";
+  return (
+    <span
+      role="link"
+      className="sa-cv-link"
+      onClick={() => {
+        const blob = new Blob([`CV attachment: ${fileName}`], {
+          type: "application/pdf",
+        });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fileName;
+        link.click();
+        URL.revokeObjectURL(url);
+      }}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 5,
+        color: BRAND,
+        fontFamily: FONT,
+        fontSize: 12,
+        fontWeight: 600,
+        cursor: "pointer",
+        textDecoration: "underline",
+        whiteSpace: "nowrap",
+      }}
+    >
+      <LineIcon name="download" color={BRAND} size={14} />
+      {fileName}
+    </span>
+  );
+}
+
 function MiniAction({
   kind,
   label,
@@ -4186,8 +4594,8 @@ function EmploymentTable({
           emp.position || "—",
           emp.department || "—",
           emp.joinDate || "—",
-          employmentEndDisplay(emp.endDate || ""),
-          employmentRecordStatus(emp.endDate || ""),
+          employmentEndDisplay(emp.endDate || "", emp.current),
+          employmentRecordStatus(emp.endDate || "", emp.current),
           ...(showActions
             ? [
                 <Row key={`emp-actions-${emp.id}`} gap={6}>
@@ -4225,6 +4633,9 @@ export default function StudentManagementPortal() {
     (page as string) === "training-region"
   ) {
     setPage("sa-batch");
+  }
+  if (!SHOW_ACTIVITY_LOG && page === "activity") {
+    setPage("students");
   }
   const [masterOpen, setMasterOpen] = useCanvasState("masterOpen", true);
   const [announceOpen, setAnnounceOpen] = useCanvasState("announceOpen", true);
@@ -4296,7 +4707,7 @@ export default function StudentManagementPortal() {
     false,
   );
 
-  const [students, setStudents] = useCanvasState<Student[]>("saStudents5", SEED_STUDENTS);
+  const [students, setStudents] = useCanvasState<Student[]>("saStudents6", SEED_STUDENTS);
   const [schools, setSchools] = useCanvasState<School[]>("saSchools3", SEED_SCHOOLS);
   const [events, setEvents] = useCanvasState<EventRec[]>("events3", SEED_EVENTS);
   const [volunteers, setVolunteers] = useCanvasState<Volunteer[]>(
@@ -4306,7 +4717,7 @@ export default function StudentManagementPortal() {
   const [jobs, setJobs] = useCanvasState<Job[]>("jobs2", SEED_JOBS);
   const [joins, setJoins] = useCanvasState<JoinRecord[]>("joins3", SEED_JOINS);
   const [candidates] = useCanvasState<JobCandidate[]>(
-    "candidates2",
+    "candidates3",
     SEED_CANDIDATES,
   );
   const [kpis, setKpis] = useCanvasState<KpiRow[]>("kpis", SEED_KPI);
@@ -4353,6 +4764,10 @@ export default function StudentManagementPortal() {
   const schoolStatusOpts = [
     { value: "All", label: "All statuses" },
     ...STATUS_OPTS,
+  ];
+  const studentStatusOpts = [
+    { value: "All", label: "All statuses" },
+    ...SA_STATUS_OPTS,
   ];
   const activityStatusFilterOpts = [
     { value: "All", label: "All statuses" },
@@ -4431,12 +4846,20 @@ export default function StudentManagementPortal() {
     setModal("import");
   }
 
+  function openUpdateStudents() {
+    setMenuId("");
+    setForm({ file: "", importText: "" });
+    setModal("update-import");
+  }
+
   function openEdit(id: string, defaults: Record<string, string>) {
     setForm(defaults);
     setEditId(id);
     setModal("edit");
     const student = students.find((s) => s.id === id);
-    setEmpDraft(student?.employment ? [...student.employment] : []);
+    setEmpDraft(
+      (student?.employment || []).map((emp) => normalizeEmployment(emp)),
+    );
   }
 
   function openDetails(id: string, defaults: Record<string, string>) {
@@ -4511,32 +4934,37 @@ export default function StudentManagementPortal() {
       department: "",
       joinDate: "",
       endDate: "",
+      current: "yes",
     });
     setEmpFormOpen("add");
   }
 
   function openEditEmployment(emp: Employment) {
+    const normalized = normalizeEmployment(emp);
     setEmpFormId(emp.id);
     setEmpForm({
-      type: emp.type || "Intern",
-      position: emp.position || "",
-      department: emp.department || "",
-      joinDate: emp.joinDate || "",
-      endDate: emp.endDate || "",
+      type: normalized.type || "Intern",
+      position: normalized.position || "",
+      department: normalized.department || "",
+      joinDate: normalized.joinDate || "",
+      endDate: normalized.endDate || "",
+      current: normalized.current ? "yes" : "no",
     });
     setEmpFormOpen("edit");
   }
 
   function saveEmploymentForm() {
     if (!detailId) return;
-    const next: Employment = {
+    const isCurrent = empForm.current === "yes";
+    const next: Employment = normalizeEmployment({
       id: empFormOpen === "edit" && empFormId ? empFormId : uid("emp"),
       type: empForm.type || "Intern",
       position: empForm.position || "",
       department: empForm.department || "",
       joinDate: empForm.joinDate || "",
-      endDate: empForm.endDate || "",
-    };
+      endDate: isCurrent ? "" : empForm.endDate || "",
+      current: isCurrent,
+    });
     setStudents(
       students.map((s) => {
         if (s.id !== detailId) return s;
@@ -4573,9 +5001,16 @@ export default function StudentManagementPortal() {
     flash("employment deleted");
   }
 
-  function updateEmpDraft(index: number, key: keyof Employment, value: string) {
+  function updateEmpDraft(index: number, key: keyof Employment, value: string | boolean) {
     setEmpDraft(
-      empDraft.map((row, i) => (i === index ? { ...row, [key]: value } : row)),
+      empDraft.map((row, i) => {
+        if (i !== index) return row;
+        if (key === "current") {
+          const current = Boolean(value);
+          return { ...row, current, endDate: current ? "" : row.endDate };
+        }
+        return { ...row, [key]: value };
+      }),
     );
   }
 
@@ -4589,6 +5024,7 @@ export default function StudentManagementPortal() {
         department: "",
         joinDate: "",
         endDate: "",
+        current: true,
       },
     ]);
   }
@@ -4853,7 +5289,7 @@ export default function StudentManagementPortal() {
     if (regionFilter !== "All" && s.region !== regionFilter) return false;
     if (batchFilter !== "All" && s.batch !== batchFilter) return false;
     if (collegeFilter !== "All" && s.college !== collegeFilter) return false;
-    if (cityFilter !== "All" && s.city !== cityFilter) return false;
+    if (statusFilter !== "All" && s.status !== statusFilter) return false;
     if (!inDateRange(s.createdAt, dateFrom, dateTo)) return false;
     if (!q) return true;
     return matches(s.studentId, q) || matches(s.name, q);
@@ -4876,7 +5312,7 @@ export default function StudentManagementPortal() {
     (batchFilter !== "All" ? 1 : 0) +
     (collegeFilter !== "All" ? 1 : 0) +
     (regionFilter !== "All" ? 1 : 0) +
-    (cityFilter !== "All" ? 1 : 0) +
+    (statusFilter !== "All" ? 1 : 0) +
     (dateFrom ? 1 : 0) +
     (dateTo ? 1 : 0);
 
@@ -5752,13 +6188,27 @@ export default function StudentManagementPortal() {
                 </div>
               ) : null}
               <Row gap={8}>
-                {page === "certificates" || page === "kpi" || page === "activity" ? null : (
+                {page === "certificates" ? (
+                  <BrandButton
+                    onClick={() => {
+                      setCertZipFiles(detailCert?.files || []);
+                      setForm({ ...form, replaceFile: "" });
+                      setModal("edit");
+                    }}
+                  >
+                    Replace
+                  </BrandButton>
+                ) : page === "activity" ? null : (
                   <BrandButton
                     onClick={() => {
                       if (page === "students" && detailId) {
                         const student = students.find((s) => s.id === detailId);
                         setEmpDraft(
-                          student?.employment ? [...student.employment] : [],
+                          student?.employment
+                            ? student.employment.map((emp) =>
+                                normalizeEmployment(emp),
+                              )
+                            : [],
                         );
                       }
                       setModal("edit");
@@ -5767,6 +6217,13 @@ export default function StudentManagementPortal() {
                     Edit
                   </BrandButton>
                 )}
+                {page === "banners" || master ? (
+                  <MiniAction
+                    kind="reject"
+                    label="Delete"
+                    onClick={() => setModal("delete")}
+                  />
+                ) : null}
                 {showActivityCancel ? (
                   <Button variant="ghost" onClick={openActivityCancel}>
                     Cancel activity
@@ -5894,9 +6351,15 @@ export default function StudentManagementPortal() {
               ) : null}
               {page === "events" || page === "volunteers" ? (
                 <Stack gap={12}>
-                  <H2 style={mergeStyle({ color: INK, fontFamily: FONT })}>
-                    Participants
-                  </H2>
+                  <Row align="center">
+                    <H2 style={mergeStyle({ color: INK, fontFamily: FONT })}>
+                      Participants
+                    </H2>
+                    <Spacer />
+                    <HeaderExportButton
+                      onClick={() => flash("Participant list exported")}
+                    />
+                  </Row>
                   <JoinTabs
                     value={partTab}
                     counts={joinCounts}
@@ -6023,9 +6486,15 @@ export default function StudentManagementPortal() {
               ) : null}
               {page === "jobs" && detailCandidates.length ? (
                 <Stack gap={12}>
-                  <H2 style={mergeStyle({ color: INK, fontFamily: FONT })}>
-                    Candidates
-                  </H2>
+                  <Row align="center">
+                    <H2 style={mergeStyle({ color: INK, fontFamily: FONT })}>
+                      Candidates
+                    </H2>
+                    <Spacer />
+                    <HeaderExportButton
+                      onClick={() => flash("Candidate list exported")}
+                    />
+                  </Row>
                   <Row gap={8} align="center">
                     <SearchField
                       value={partSearch}
@@ -6117,6 +6586,7 @@ export default function StudentManagementPortal() {
                           "SA Batch",
                           "City",
                           "Current Address",
+                          "CV Attach",
                           "Phone",
                           "Email",
                           "Applied",
@@ -6128,6 +6598,7 @@ export default function StudentManagementPortal() {
                           row.batch,
                           row.city?.trim() || "—",
                           row.currentAddress?.trim() || "—",
+                          <CvAttachLink key={`${row.id}-cv`} fileName={row.cv} />,
                           row.phone,
                           row.email,
                           row.appliedAt,
@@ -6177,7 +6648,7 @@ export default function StudentManagementPortal() {
             <>
               <PageIntro
                 title="Student Record"
-                body="Add, view, search, filter, and export Student Ambassador records. Use Add to create a single ambassador or upload a batch file."
+                body="Add, view, search, filter, and export Student Ambassador records. Use Record to create a single ambassador, upload a batch file, or update existing records."
                 actions={
                   <Row gap={8} align="center">
                     <TemplateButton
@@ -6188,12 +6659,23 @@ export default function StudentManagementPortal() {
                       onClick={() => flash("Student records exported")}
                     />
                     <AddSplitButton
+                      label="Record"
                       open={menuId === "student-add"}
                       onToggle={() =>
                         setMenuId(menuId === "student-add" ? "" : "student-add")
                       }
-                      onSingle={openAddStudent}
-                      onUpload={openUploadStudents}
+                      onSingle={() => {
+                        setMenuId("");
+                        openAddStudent();
+                      }}
+                      onUpload={() => {
+                        setMenuId("");
+                        openUploadStudents();
+                      }}
+                      onEditUpload={() => {
+                        setMenuId("");
+                        openUpdateStudents();
+                      }}
                     />
                   </Row>
                 }
@@ -6223,7 +6705,7 @@ export default function StudentManagementPortal() {
                   <Stack gap={12}>
                     <Row align="center">
                       <Text size="small" style={{ color: MUTED, fontFamily: FONT }}>
-                        Filter by batch, college, training region, city, and created date
+                        Filter by batch, college, training region, status, and created date
                       </Text>
                       <Spacer />
                       <div
@@ -6265,11 +6747,11 @@ export default function StudentManagementPortal() {
                           style={{ width: "100%" }}
                         />
                       </Field>
-                      <Field label="City">
+                      <Field label="Status">
                         <Select
-                          value={cityFilter}
-                          onChange={setCityFilter}
-                          options={cityOpts}
+                          value={statusFilter}
+                          onChange={setStatusFilter}
+                          options={studentStatusOpts}
                           style={{ width: "100%" }}
                         />
                       </Field>
@@ -6290,7 +6772,7 @@ export default function StudentManagementPortal() {
                 >
                   <Stack gap={10}>
                     <Text weight="semibold" style={{ fontFamily: FONT }}>
-                      Import result
+                      Upload result
                     </Text>
                     <Text size="small" style={{ color: MUTED, fontFamily: FONT }}>
                       {formatStudentImportResult(studentImportResult)}
@@ -6548,31 +7030,36 @@ export default function StudentManagementPortal() {
                 title="Event Management"
                 body="Create, update, and monitor KBZPay Student Ambassador events, including registration windows and participant capacity."
                 actions={
-                  <BrandButton
-                    onClick={() =>
-                      openAdd({
-                        title: "",
-                        eventId: nextEventId(events),
-                        status: "Active",
-                        venue: "",
-                        eventDate: "",
-                        eventTime: "",
-                        city: "",
-                        township: "",
-                        hostName: "",
-                        regStart: "",
-                        regEnd: "",
-                        max: "",
-                        summary: "",
-                        details: "",
-                        cover: "",
-                        meeting: "",
-                        sendSms: "no",
-                      })
-                    }
-                  >
-                    Add
-                  </BrandButton>
+                  <Row gap={8} align="center">
+                    <HeaderExportButton
+                      onClick={() => flash("Event records exported")}
+                    />
+                    <BrandButton
+                      onClick={() =>
+                        openAdd({
+                          title: "",
+                          eventId: nextEventId(events),
+                          status: "Active",
+                          venue: "",
+                          eventDate: "",
+                          eventTime: "",
+                          city: "",
+                          township: "",
+                          hostName: "",
+                          regStart: "",
+                          regEnd: "",
+                          max: "",
+                          summary: "",
+                          details: "",
+                          cover: "",
+                          meeting: "",
+                          sendSms: "no",
+                        })
+                      }
+                    >
+                      Add
+                    </BrandButton>
+                  </Row>
                 }
               />
               <Row gap={8} align="center">
@@ -6703,31 +7190,36 @@ export default function StudentManagementPortal() {
                 title="Volunteer Management"
                 body="Publish volunteer activities, control registration dates, and track participant capacity by region."
                 actions={
-                  <BrandButton
-                    onClick={() =>
-                      openAdd({
-                        title: "",
-                        volunteerId: nextVolunteerId(volunteers),
-                        status: "Active",
-                        venue: "",
-                        eventDate: "",
-                        eventTime: "",
-                        city: "",
-                        township: "",
-                        hostName: "",
-                        regStart: "",
-                        regEnd: "",
-                        duration: "",
-                        max: "",
-                        summary: "",
-                        details: "",
-                        cover: "",
-                        sendSms: "no",
-                      })
-                    }
-                  >
-                    Add
-                  </BrandButton>
+                  <Row gap={8} align="center">
+                    <HeaderExportButton
+                      onClick={() => flash("Volunteer records exported")}
+                    />
+                    <BrandButton
+                      onClick={() =>
+                        openAdd({
+                          title: "",
+                          volunteerId: nextVolunteerId(volunteers),
+                          status: "Active",
+                          venue: "",
+                          eventDate: "",
+                          eventTime: "",
+                          city: "",
+                          township: "",
+                          hostName: "",
+                          regStart: "",
+                          regEnd: "",
+                          duration: "",
+                          max: "",
+                          summary: "",
+                          details: "",
+                          cover: "",
+                          sendSms: "no",
+                        })
+                      }
+                    >
+                      Add
+                    </BrandButton>
+                  </Row>
                 }
               />
               <Row gap={8} align="center">
@@ -6858,29 +7350,34 @@ export default function StudentManagementPortal() {
                 title="Job Management"
                 body="Post and monitor job opportunities for Student Ambassadors. Track vacancies, application windows, and incoming applicants."
                 actions={
-                  <BrandButton
-                    onClick={() =>
-                      openAdd({
-                        title: "",
-                        jobId: nextJobId(jobs),
-                        type: "Internship",
-                        company: "KBZPay",
-                        city: "",
-                        township: "",
-                        vacancies: "",
-                        start: "",
-                        deadline: "",
-                        summary: "",
-                        responsibilities: "",
-                        requirements: "",
-                        pdf: "",
-                        cover: "",
-                        sendSms: "no",
-                      })
-                    }
-                  >
-                    Add
-                  </BrandButton>
+                  <Row gap={8} align="center">
+                    <HeaderExportButton
+                      onClick={() => flash("Job records exported")}
+                    />
+                    <BrandButton
+                      onClick={() =>
+                        openAdd({
+                          title: "",
+                          jobId: nextJobId(jobs),
+                          type: "Internship",
+                          company: "KBZPay",
+                          city: "",
+                          township: "",
+                          vacancies: "",
+                          start: "",
+                          deadline: "",
+                          summary: "",
+                          responsibilities: "",
+                          requirements: "",
+                          pdf: "",
+                          cover: "",
+                          sendSms: "no",
+                        })
+                      }
+                    >
+                      Add
+                    </BrandButton>
+                  </Row>
                 }
               />
               <Row gap={8} align="center">
@@ -7007,14 +7504,28 @@ export default function StudentManagementPortal() {
                       filename="SA_KPI_Import_Template.csv"
                       csv={KPI_TEMPLATE}
                     />
-                    <BrandButton
-                      onClick={() => {
+                    <HeaderExportButton
+                      onClick={() => flash("KPI records exported")}
+                    />
+                    <AddSplitButton
+                      label="Record"
+                      open={menuId === "kpi-record"}
+                      onToggle={() =>
+                        setMenuId(menuId === "kpi-record" ? "" : "kpi-record")
+                      }
+                      onUpload={() => {
+                        setMenuId("");
                         setForm({ file: "" });
                         setModal("import");
                       }}
-                    >
-                      Import KPI
-                    </BrandButton>
+                      uploadLabel="Import KPI"
+                      onEditUpload={() => {
+                        setMenuId("");
+                        setForm({ file: "" });
+                        setModal("update-import");
+                      }}
+                      editUploadLabel="Edit upload"
+                    />
                   </Row>
                 }
               />
@@ -7100,25 +7611,30 @@ export default function StudentManagementPortal() {
                 title="Hall of Fame"
                 body="Recognize outstanding Student Ambassadors and placement outcomes by category, title, and year."
                 actions={
-                  <BrandButton
-                    onClick={() =>
-                      openAdd({
-                        studentId: students[0]?.studentId || "",
-                        name: students[0]?.name || "",
-                        college: students[0]?.college || "",
-                        batch: students[0]?.batch || "",
-                        category: FAME_CATEGORY_OPTS[0]?.value || "",
-                        title: FAME_TITLE_OPTS["Highest Onboarding"][0]?.value || "",
-                        year: "2026",
-                        employmentType: "Intern",
-                        department: "",
-                        joinDate: "",
-                        endDate: "",
-                      })
-                    }
-                  >
-                    Add
-                  </BrandButton>
+                  <Row gap={8} align="center">
+                    <HeaderExportButton
+                      onClick={() => flash("Hall of Fame records exported")}
+                    />
+                    <BrandButton
+                      onClick={() =>
+                        openAdd({
+                          studentId: students[0]?.studentId || "",
+                          name: students[0]?.name || "",
+                          college: students[0]?.college || "",
+                          batch: students[0]?.batch || "",
+                          category: FAME_CATEGORY_OPTS[0]?.value || "",
+                          title: FAME_TITLE_OPTS["Highest Onboarding"][0]?.value || "",
+                          year: "2026",
+                          employmentType: "Intern",
+                          department: "",
+                          joinDate: "",
+                          endDate: "",
+                        })
+                      }
+                    >
+                      Add
+                    </BrandButton>
+                  </Row>
                 }
               />
               <Table
@@ -7303,7 +7819,7 @@ export default function StudentManagementPortal() {
             </>
           ) : null}
 
-          {page === "activity" ? (
+          {SHOW_ACTIVITY_LOG && page === "activity" ? (
             <>
               <PageIntro
                 title="Activity Log"
@@ -7483,6 +7999,109 @@ export default function StudentManagementPortal() {
               }}
             >
               Import
+            </BrandButton>
+          </Row>
+        </ModalShell>
+      ) : null}
+
+      {modal !== "closed" && page === "students" && modal === "update-import" ? (
+        <ModalShell title="Update Student Ambassador records" onClose={closeModal}>
+          <Stack gap={12}>
+            <Text tone="secondary">
+              Upload an Excel (.xlsx) file of existing students to update. Rows
+              are matched by SA ID. Unknown SA IDs are rejected.
+            </Text>
+            <TemplateButton
+              filename="SA_Student_Update_Template.csv"
+              csv={STUDENT_TEMPLATE}
+            />
+            <div
+              style={{
+                background: SOFT,
+                border: `1px solid ${LINE}`,
+                borderRadius: 8,
+                padding: 12,
+              }}
+            >
+              <Stack gap={6}>
+                <Text size="small" weight="medium" style={{ fontFamily: FONT }}>
+                  Validation notes
+                </Text>
+                {[
+                  "Only Excel files are supported.",
+                  "SA ID must already exist in Student Record.",
+                  "Required columns must not be empty.",
+                  "Matched records will be updated.",
+                  "Unknown SA IDs appear in the result as failed.",
+                ].map((note) => (
+                  <Text
+                    key={note}
+                    size="small"
+                    style={{ color: MUTED, fontFamily: FONT }}
+                  >
+                    · {note}
+                  </Text>
+                ))}
+              </Stack>
+            </div>
+            <FilePick
+              label="Excel file"
+              accept=".xlsx,.xls,.csv"
+              value={form.file || ""}
+              onFileChange={(file) => {
+                const lower = file.name.toLowerCase();
+                if (
+                  !lower.endsWith(".xlsx") &&
+                  !lower.endsWith(".xls") &&
+                  !lower.endsWith(".csv")
+                ) {
+                  flash("Only Excel files are supported.");
+                  return;
+                }
+                const reader = new FileReader();
+                reader.onload = () => {
+                  const result =
+                    typeof reader.result === "string" ? reader.result : "";
+                  setForm({ file: file.name, importText: result });
+                };
+                reader.readAsText(file);
+              }}
+            />
+          </Stack>
+          <Row>
+            <Spacer />
+            <Button variant="ghost" onClick={closeModal}>
+              Cancel
+            </Button>
+            <BrandButton
+              disabled={!form.file || !form.importText}
+              onClick={() => {
+                const result = updateStudentRows(form.importText || "", students);
+                if (result.accepted.length > 0) {
+                  const updates = new Map(
+                    result.accepted.map((row) => [
+                      row.studentId.trim().toLowerCase(),
+                      row,
+                    ]),
+                  );
+                  setStudents(
+                    students.map(
+                      (student) =>
+                        updates.get(student.studentId.trim().toLowerCase()) ||
+                        student,
+                    ),
+                  );
+                }
+                setStudentImportResult(result);
+                closeModal();
+                flash(
+                  result.success > 0
+                    ? `${result.success} student record(s) updated`
+                    : "Update completed with no changed records",
+                );
+              }}
+            >
+              Update
             </BrandButton>
           </Row>
         </ModalShell>
@@ -7785,22 +8404,28 @@ export default function StudentManagementPortal() {
                         value={emp.joinDate || ""}
                         onChange={(v) => updateEmpDraft(index, "joinDate", v)}
                       />
+                      <Field label="Current">
+                        <SmsCheckbox
+                          checked={Boolean(emp.current)}
+                          onChange={(next) =>
+                            updateEmpDraft(index, "current", next)
+                          }
+                          label="Current employment"
+                        />
+                      </Field>
                       <DateField
                         label="End Date"
-                        value={emp.endDate || ""}
+                        value={emp.current ? "" : emp.endDate || ""}
                         onChange={(v) => updateEmpDraft(index, "endDate", v)}
+                        disabled={Boolean(emp.current)}
                       />
-                      <Field label="Status">
-                        <Text weight="medium">
-                          {employmentRecordStatus(emp.endDate || "")}
-                        </Text>
-                      </Field>
                     </Grid>
                   </Stack>
                 </div>
               ))}
               <Text size="small" style={{ color: MUTED, fontFamily: FONT }}>
-                Status shows Present when End Date is empty or in the future, otherwise Completed.
+                Check Current to keep the role open. End Date is disabled while
+                Current is selected.
               </Text>
             </Stack>
           )}
@@ -7838,11 +8463,13 @@ export default function StudentManagementPortal() {
                     avatar:
                       form.avatar ||
                       avatarDataUri(form.name || "New Ambassador", BRAND),
-                    employment: empDraft.map((emp) => ({
-                      ...emp,
-                      id: emp.id || uid("emp"),
-                      type: emp.type || "Intern",
-                    })),
+                    employment: empDraft.map((emp) =>
+                      normalizeEmployment({
+                        ...emp,
+                        id: emp.id || uid("emp"),
+                        type: emp.type || "Intern",
+                      }),
+                    ),
                     ...stampAudit(form, modal === "edit"),
                   };
                   if (modal === "edit") {
@@ -8782,6 +9409,162 @@ export default function StudentManagementPortal() {
         </ModalShell>
       ) : null}
 
+      {modal === "update-import" && page === "kpi" ? (
+        <ModalShell title="Update KPI records" onClose={closeModal}>
+          <Stack gap={12}>
+            <Text tone="secondary">
+              Upload an Excel (.xlsx) file of existing KPI rows to update. Rows
+              are matched by Student ID.
+            </Text>
+            <TemplateButton
+              filename="SA_KPI_Update_Template.csv"
+              csv={KPI_TEMPLATE}
+            />
+            <FilePick
+              label="KPI Excel file"
+              accept=".xlsx,.xls"
+              value={form.file || ""}
+              onChange={(n) => setField("file", n)}
+            />
+          </Stack>
+          <Row>
+            <Spacer />
+            <Button variant="ghost" onClick={closeModal}>
+              Cancel
+            </Button>
+            <BrandButton
+              disabled={!form.file}
+              onClick={() => {
+                setKpis(
+                  kpis.map((k) =>
+                    k.studentId === "SA-2026-001"
+                      ? {
+                          ...k,
+                          attendance: 97,
+                          operation: 90,
+                          onboarding: 93,
+                          social: 88,
+                          assignment: 91,
+                          total: 92,
+                        }
+                      : k,
+                  ),
+                );
+                setKpiImported(
+                  `${form.file} validated. Existing KPI records updated by Student ID.`,
+                );
+                closeModal();
+                flash("KPI records updated");
+              }}
+            >
+              Update
+            </BrandButton>
+          </Row>
+        </ModalShell>
+      ) : null}
+
+      {modal === "edit" && page === "kpi" ? (
+        <ModalShell title="Edit KPI" onClose={closeModal}>
+          <Grid columns={2} gap={12}>
+            <Field label="Student ID">
+              <LockedValue value={form.studentId} />
+            </Field>
+            <Field label="Student Name">
+              <LockedValue value={form.name} />
+            </Field>
+            <Field label="Contact Number">
+              <TextInput
+                value={form.phone || ""}
+                onChange={(v) => setField("phone", v)}
+              />
+            </Field>
+            <Field label="College Name">
+              <TextInput
+                value={form.college || ""}
+                onChange={(v) => setField("college", v)}
+              />
+            </Field>
+            <Field label="Attendance">
+              <TextInput
+                value={form.attendance || ""}
+                onChange={(v) => setField("attendance", v)}
+              />
+            </Field>
+            <Field label="Operation">
+              <TextInput
+                value={form.operation || ""}
+                onChange={(v) => setField("operation", v)}
+              />
+            </Field>
+            <Field label="Onboarding">
+              <TextInput
+                value={form.onboarding || ""}
+                onChange={(v) => setField("onboarding", v)}
+              />
+            </Field>
+            <Field label="Social Media">
+              <TextInput
+                value={form.social || ""}
+                onChange={(v) => setField("social", v)}
+              />
+            </Field>
+            <Field label="Assignment">
+              <TextInput
+                value={form.assignment || ""}
+                onChange={(v) => setField("assignment", v)}
+              />
+            </Field>
+            <Field label="Total KPI (%)">
+              <TextInput
+                value={form.total || ""}
+                onChange={(v) => setField("total", v)}
+              />
+            </Field>
+          </Grid>
+          <Row>
+            <Spacer />
+            <Button variant="ghost" onClick={closeModal}>
+              Cancel
+            </Button>
+            <BrandButton
+              onClick={() => {
+                const next = {
+                  attendance: Number(form.attendance) || 0,
+                  operation: Number(form.operation) || 0,
+                  onboarding: Number(form.onboarding) || 0,
+                  social: Number(form.social) || 0,
+                  assignment: Number(form.assignment) || 0,
+                  total: Number(form.total) || 0,
+                  phone: form.phone || "",
+                  college: form.college || "",
+                  name: form.name || "",
+                };
+                setKpis(
+                  kpis.map((k) =>
+                    k.id === editId || k.id === detailId
+                      ? { ...k, ...next }
+                      : k,
+                  ),
+                );
+                setForm({
+                  ...form,
+                  attendance: String(next.attendance),
+                  operation: String(next.operation),
+                  onboarding: String(next.onboarding),
+                  social: String(next.social),
+                  assignment: String(next.assignment),
+                  total: String(next.total),
+                });
+                closeModal();
+                flash("KPI updated");
+              }}
+            >
+              Save
+            </BrandButton>
+          </Row>
+        </ModalShell>
+      ) : null}
+
       {modal !== "closed" &&
       page === "fame" &&
       (modal === "add" || modal === "edit") ? (
@@ -9064,6 +9847,150 @@ export default function StudentManagementPortal() {
             >
               Upload
             </BrandButton>
+          </Row>
+        </ModalShell>
+      ) : null}
+
+      {modal === "edit" && page === "certificates" ? (
+        <ModalShell wide title="Replace certificate ZIP" onClose={closeModal}>
+          <Text tone="secondary">
+            Upload a new ZIP to replace the certificate package for{" "}
+            {form.batch || "this batch"} · {form.category || "this category"}.
+          </Text>
+          <Grid columns={2} gap={12}>
+            <Field label="SA Batch">
+              <LockedValue value={form.batch} />
+            </Field>
+            <Field label="Certificate Category">
+              <LockedValue value={form.category} />
+            </Field>
+            <Field label="Current ZIP">
+              <LockedValue value={form.file} />
+            </Field>
+            <FilePick
+              label="New ZIP file"
+              accept=".zip"
+              value={form.replaceFile || ""}
+              onChange={(n) => {
+                const batch = form.batch || "Batch 6";
+                const preview = simulateZip(n, batch, students);
+                setCertZipFiles(preview);
+                setForm({
+                  ...form,
+                  replaceFile: n,
+                  count: `${preview.filter((f) => f.ok).length} certificates`,
+                });
+              }}
+            />
+          </Grid>
+          {certZipFiles.length ? (
+            <Stack gap={8}>
+              <H2 style={mergeStyle({ color: INK, fontFamily: FONT })}>
+                ZIP file list
+              </H2>
+              <Text size="small" style={{ color: MUTED, fontFamily: FONT }}>
+                {certZipFiles.filter((f) => f.ok).length} matched ·{" "}
+                {certZipFiles.filter((f) => !f.ok).length} error
+                {certZipFiles.filter((f) => !f.ok).length === 1 ? "" : "s"}
+              </Text>
+              <CertFileTable files={certZipFiles} />
+            </Stack>
+          ) : null}
+          <Row>
+            <Spacer />
+            <Button variant="ghost" onClick={closeModal}>
+              Cancel
+            </Button>
+            <BrandButton
+              disabled={!form.replaceFile}
+              onClick={() => {
+                if (!detailId || !form.replaceFile) return;
+                const batch = form.batch || "Batch 6";
+                const files =
+                  certZipFiles.length > 0
+                    ? certZipFiles
+                    : simulateZip(form.replaceFile, batch, students);
+                const matched = files.filter((f) => f.ok).length;
+                const errors = files.filter((f) => !f.ok).length;
+                const nextCount =
+                  form.count || `${matched} certificates`;
+                setCerts(
+                  certs.map((c) =>
+                    c.id === detailId
+                      ? {
+                          ...c,
+                          file: form.replaceFile,
+                          count: nextCount,
+                          uploaded: "2026-08-14",
+                          files,
+                        }
+                      : c,
+                  ),
+                );
+                setForm({
+                  ...form,
+                  file: form.replaceFile,
+                  count: nextCount,
+                  uploaded: "2026-08-14",
+                  replaceFile: "",
+                });
+                closeModal();
+                flash(
+                  errors
+                    ? `certificate replaced — ${errors} file${errors === 1 ? "" : "s"} not in the batch list`
+                    : "certificate replaced",
+                );
+              }}
+            >
+              Replace
+            </BrandButton>
+          </Row>
+        </ModalShell>
+      ) : null}
+
+      {modal === "delete" && (page === "banners" || master) ? (
+        <ModalShell
+          title={
+            master
+              ? `Delete ${master.title}`
+              : "Delete banner"
+          }
+          onClose={closeModal}
+        >
+          <Stack gap={12}>
+            <Text>
+              {master
+                ? `Delete "${form.name || "this record"}"? This cannot be undone.`
+                : `Delete banner "${form.title || "this banner"}"? This cannot be undone.`}
+            </Text>
+          </Stack>
+          <Row>
+            <Spacer />
+            <Button variant="ghost" onClick={closeModal}>
+              Cancel
+            </Button>
+            <MiniAction
+              kind="reject"
+              label="Delete"
+              onClick={() => {
+                if (!detailId) return;
+                if (page === "banners") {
+                  setBanners(banners.filter((b) => b.id !== detailId));
+                  closeModal();
+                  closeDetails();
+                  flash("banner deleted");
+                  return;
+                }
+                if (master) {
+                  master.setItems(
+                    master.items.filter((item) => item.id !== detailId),
+                  );
+                  closeModal();
+                  closeDetails();
+                  flash(`${master.title.toLowerCase()} deleted`);
+                }
+              }}
+            />
           </Row>
         </ModalShell>
       ) : null}
@@ -9391,20 +10318,29 @@ export default function StudentManagementPortal() {
               value={empForm.joinDate || ""}
               onChange={(v) => setEmpField("joinDate", v)}
             />
+            <Field label="Current">
+              <SmsCheckbox
+                checked={empForm.current === "yes"}
+                onChange={(next) =>
+                  setEmpForm({
+                    ...empForm,
+                    current: next ? "yes" : "no",
+                    endDate: next ? "" : empForm.endDate || "",
+                  })
+                }
+                label="Current employment"
+              />
+            </Field>
             <DateField
               label="End Date"
-              value={empForm.endDate || ""}
+              value={empForm.current === "yes" ? "" : empForm.endDate || ""}
               onChange={(v) => setEmpField("endDate", v)}
+              disabled={empForm.current === "yes"}
             />
-            <Field label="Status">
-              <Text weight="medium">
-                {employmentRecordStatus(empForm.endDate || "")}
-              </Text>
-            </Field>
           </Grid>
           <Text size="small" style={{ color: MUTED, fontFamily: FONT }}>
-            Status shows Present when End Date is empty or in the future,
-            otherwise Completed.
+            Check Current to keep the role open. End Date is disabled while
+            Current is selected.
           </Text>
           <Row>
             <Spacer />
